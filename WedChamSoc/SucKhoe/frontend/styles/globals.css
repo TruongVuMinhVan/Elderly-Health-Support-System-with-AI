@@ -1,0 +1,407 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* Base styles for elderly-friendly design */
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-elderly-bg text-elderly-text antialiased;
+    font-size: 18px;
+    /* Larger base font size for elderly users */
+    line-height: 1.6;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  /* Dark mode styles - apply to all elements */
+  .dark {
+    color-scheme: dark;
+  }
+
+  .dark body {
+    @apply bg-dark-bg text-dark-text;
+  }
+
+  .dark .card {
+    @apply bg-dark-card-bg border-dark-border;
+  }
+
+  .dark .text-elderly {
+    @apply text-dark-text;
+  }
+
+  .dark .text-elderly-light {
+    @apply text-dark-text-light;
+  }
+
+  /* Header dark mode */
+  .dark header {
+    @apply bg-dark-card-bg border-dark-border;
+  }
+
+  /* Sidebar dark mode */
+  .dark aside {
+    @apply bg-dark-card-bg border-dark-border;
+  }
+
+  /* Layout dark mode */
+  .dark .min-h-screen {
+    @apply bg-dark-bg;
+  }
+
+  /* Input and form elements dark mode */
+  .dark input,
+  .dark select,
+  .dark textarea {
+    @apply bg-dark-card-bg border-dark-border text-dark-text;
+  }
+
+  /* Button dark mode */
+  .dark .btn-primary {
+    @apply bg-primary-600 hover:bg-primary-700;
+  }
+
+  /* Navigation dark mode */
+  .dark .nav-link {
+    @apply text-dark-text;
+  }
+
+  .dark .nav-link-active {
+    @apply bg-primary-900 text-white;
+  }
+
+  .dark .nav-link-inactive:hover {
+    @apply bg-dark-hover-bg;
+  }
+
+  /* Menu dropdown dark mode */
+  .dark .bg-white {
+    @apply bg-dark-card-bg;
+  }
+
+  /* All text elements in dark mode */
+  .dark h1,
+  .dark h2,
+  .dark h3,
+  .dark h4,
+  .dark h5,
+  .dark h6,
+  .dark p,
+  .dark span,
+  .dark div {
+    @apply text-dark-text;
+  }
+
+  /* Font size classes - apply to html root */
+  html.font-size-small {
+    font-size: 14px;
+  }
+
+  html.font-size-medium {
+    font-size: 16px;
+  }
+
+  html.font-size-large {
+    font-size: 18px;
+  }
+
+  html.font-size-extra-large {
+    font-size: 22px;
+  }
+
+  /* Focus styles for accessibility */
+  *:focus {
+    @apply outline-none ring-2 ring-primary-500 ring-offset-2;
+  }
+
+  /* High contrast mode support */
+  @media (prefers-contrast: high) {
+    body {
+      @apply bg-white text-black;
+    }
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* Component styles */
+@layer components {
+
+  /* Button styles */
+  .btn {
+    @apply btn-elderly inline-flex items-center justify-center border border-transparent font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-primary {
+    @apply bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500;
+  }
+
+  .btn-secondary {
+    @apply bg-secondary-100 text-secondary-900 hover:bg-secondary-200 focus:ring-secondary-500;
+  }
+
+  .btn-success {
+    @apply bg-health-normal text-white hover:bg-green-600 focus:ring-green-500;
+  }
+
+  .btn-warning {
+    @apply bg-health-warning text-white hover:bg-yellow-600 focus:ring-yellow-500;
+  }
+
+  .btn-danger {
+    @apply bg-health-danger text-white hover:bg-red-600 focus:ring-red-500;
+  }
+
+  .btn-outline {
+    @apply bg-transparent border-2 border-current hover:bg-current hover:text-white;
+  }
+
+  .btn-lg {
+    @apply px-8 py-4 text-xl;
+  }
+
+  .btn-sm {
+    @apply px-4 py-2 text-base;
+  }
+
+  /* Card styles */
+  .card {
+    @apply card-elderly transition-shadow duration-200;
+  }
+
+  .card:hover {
+    @apply shadow-card-hover;
+  }
+
+  .card-header {
+    @apply border-b border-elderly-border pb-4 mb-4;
+  }
+
+  .card-title {
+    @apply text-xl font-semibold text-elderly-text;
+  }
+
+  .card-subtitle {
+    @apply text-elderly-light mt-1;
+  }
+
+  /* Form styles */
+  .form-group {
+    @apply mb-6;
+  }
+
+  .form-label {
+    @apply block text-elderly-text font-medium mb-2;
+  }
+
+  .form-input {
+    @apply input-elderly w-full;
+  }
+
+  .form-select {
+    @apply input-elderly w-full;
+  }
+
+  .form-textarea {
+    @apply input-elderly w-full resize-y;
+  }
+
+  .form-error {
+    @apply text-health-danger text-sm mt-1;
+  }
+
+  .form-help {
+    @apply text-elderly-light text-sm mt-1;
+  }
+
+  /* Navigation styles */
+  .nav-link {
+    @apply px-4 py-3 text-lg font-medium rounded-lg transition-colors duration-200;
+  }
+
+  .nav-link-active {
+    @apply bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300;
+  }
+
+  .nav-link-inactive {
+    @apply text-elderly-text dark:text-dark-text hover:bg-elderly-hover-bg dark:hover:bg-dark-hover-bg hover:text-primary-600 dark:hover:text-primary-400;
+  }
+
+  /* Health status indicators */
+  .health-status-normal {
+    @apply bg-green-100 text-green-800 border border-green-200;
+  }
+
+  .health-status-warning {
+    @apply bg-yellow-100 text-yellow-800 border border-yellow-200;
+  }
+
+  .health-status-danger {
+    @apply bg-red-100 text-red-800 border border-red-200;
+  }
+
+  /* Loading states */
+  .loading-spinner {
+    @apply animate-spin rounded-full border-4 border-gray-200 border-t-primary-600;
+  }
+
+  /* Toast notifications */
+  .toast {
+    @apply rounded-lg shadow-lg p-4 mb-4 border-l-4;
+  }
+
+  .toast-success {
+    @apply bg-green-50 border-green-400 text-green-800;
+  }
+
+  .toast-error {
+    @apply bg-red-50 border-red-400 text-red-800;
+  }
+
+  .toast-warning {
+    @apply bg-yellow-50 border-yellow-400 text-yellow-800;
+  }
+
+  .toast-info {
+    @apply bg-blue-50 border-blue-400 text-blue-800;
+  }
+
+  /* Chart containers */
+  .chart-container {
+    @apply relative w-full h-64 md:h-80 lg:h-96;
+  }
+
+  /* Responsive text sizes */
+  .text-responsive-sm {
+    @apply text-base md:text-lg;
+  }
+
+  .text-responsive-md {
+    @apply text-lg md:text-xl;
+  }
+
+  .text-responsive-lg {
+    @apply text-xl md:text-2xl;
+  }
+
+  .text-responsive-xl {
+    @apply text-2xl md:text-3xl;
+  }
+}
+
+/* Utility styles */
+@layer utilities {
+
+  /* Accessibility utilities */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* Print styles */
+  @media print {
+    .no-print {
+      display: none !important;
+    }
+
+    .print-only {
+      display: block !important;
+    }
+
+    body {
+      font-size: 12pt;
+      line-height: 1.4;
+    }
+
+    .card {
+      box-shadow: none;
+      border: 1px solid #ccc;
+    }
+  }
+
+  /* High contrast mode utilities */
+  @media (prefers-contrast: high) {
+    .high-contrast-border {
+      border: 2px solid currentColor !important;
+    }
+
+    .high-contrast-bg {
+      background-color: white !important;
+      color: black !important;
+    }
+  }
+
+  /* Animation utilities */
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+
+  .animate-slide-down {
+    animation: slideDown 0.3s ease-out;
+  }
+
+  /* Spacing utilities for elderly-friendly design */
+  .space-elderly>*+* {
+    margin-top: 1.5rem;
+  }
+
+  .space-elderly-sm>*+* {
+    margin-top: 1rem;
+  }
+
+  .space-elderly-lg>*+* {
+    margin-top: 2rem;
+  }
+}
+
+/* Custom scrollbar for better UX */
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-100;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-400 rounded-lg;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-500;
+}
+
+/* Selection styles */
+::selection {
+  @apply bg-primary-200 text-primary-900;
+}
+
+/* Focus visible for better keyboard navigation */
+.focus-visible:focus {
+  @apply outline-none ring-2 ring-primary-500 ring-offset-2;
+}

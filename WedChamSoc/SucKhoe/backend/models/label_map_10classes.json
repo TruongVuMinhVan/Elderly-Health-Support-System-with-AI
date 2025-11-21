@@ -1,0 +1,39 @@
+{
+  "num_classes": 10,
+  "label_to_idx": {
+    "basal_cell_carcinoma": 0,
+    "melanoma": 1,
+    "seborrheic_keratosis": 2,
+    "healthy": 3,
+    "squamous_cell_carcinoma": 4,
+    "actinic_keratosis": 5,
+    "keratoacanthoma": 6,
+    "lichen_planus": 7,
+    "dermatofibroma": 8,
+    "spider_angioma": 9
+  },
+  "idx_to_label": {
+    "0": "basal_cell_carcinoma",
+    "1": "melanoma",
+    "2": "seborrheic_keratosis",
+    "3": "healthy",
+    "4": "squamous_cell_carcinoma",
+    "5": "actinic_keratosis",
+    "6": "keratoacanthoma",
+    "7": "lichen_planus",
+    "8": "dermatofibroma",
+    "9": "spider_angioma"
+  },
+  "diseases": [
+    "basal_cell_carcinoma",
+    "melanoma",
+    "seborrheic_keratosis",
+    "healthy",
+    "squamous_cell_carcinoma",
+    "actinic_keratosis",
+    "keratoacanthoma",
+    "lichen_planus",
+    "dermatofibroma",
+    "spider_angioma"
+  ]
+}

@@ -1,0 +1,123 @@
+{
+  "num_classes": 11,
+  "label_to_idx": {
+    "basal_cell_carcinoma": 0,
+    "seborrheic_keratosis": 1,
+    "melanoma": 2,
+    "lichen_planus": 3,
+    "healthy": 4,
+    "eczema": 5,
+    "squamous_cell_carcinoma": 6,
+    "actinic_keratosis": 7,
+    "spider_angioma": 8,
+    "keratoacanthoma": 9,
+    "dermatofibroma": 10
+  },
+  "idx_to_label": {
+    "0": "basal_cell_carcinoma",
+    "1": "seborrheic_keratosis",
+    "2": "melanoma",
+    "3": "lichen_planus",
+    "4": "healthy",
+    "5": "eczema",
+    "6": "squamous_cell_carcinoma",
+    "7": "actinic_keratosis",
+    "8": "spider_angioma",
+    "9": "keratoacanthoma",
+    "10": "dermatofibroma"
+  },
+  "classes": [
+    "basal_cell_carcinoma",
+    "seborrheic_keratosis",
+    "melanoma",
+    "lichen_planus",
+    "healthy",
+    "eczema",
+    "squamous_cell_carcinoma",
+    "actinic_keratosis",
+    "spider_angioma",
+    "keratoacanthoma",
+    "dermatofibroma"
+  ],
+  "diseases": [
+    "basal_cell_carcinoma",
+    "seborrheic_keratosis",
+    "melanoma",
+    "lichen_planus",
+    "healthy",
+    "eczema",
+    "squamous_cell_carcinoma",
+    "actinic_keratosis",
+    "spider_angioma",
+    "keratoacanthoma",
+    "dermatofibroma"
+  ],
+  "class_counts": {
+    "basal_cell_carcinoma": {
+      "train": 3323,
+      "val": 1551,
+      "test": 1547,
+      "total": 6421
+    },
+    "seborrheic_keratosis": {
+      "train": 3926,
+      "val": 500,
+      "test": 499,
+      "total": 4925
+    },
+    "melanoma": {
+      "train": 3140,
+      "val": 602,
+      "test": 600,
+      "total": 4342
+    },
+    "lichen_planus": {
+      "train": 2305,
+      "val": 75,
+      "test": 77,
+      "total": 2457
+    },
+    "healthy": {
+      "train": 1248,
+      "val": 379,
+      "test": 382,
+      "total": 2009
+    },
+    "eczema": {
+      "train": 1173,
+      "val": 251,
+      "test": 253,
+      "total": 1677
+    },
+    "squamous_cell_carcinoma": {
+      "train": 800,
+      "val": 100,
+      "test": 100,
+      "total": 1000
+    },
+    "actinic_keratosis": {
+      "train": 531,
+      "val": 159,
+      "test": 162,
+      "total": 852
+    },
+    "spider_angioma": {
+      "train": 344,
+      "val": 100,
+      "test": 47,
+      "total": 491
+    },
+    "keratoacanthoma": {
+      "train": 298,
+      "val": 87,
+      "test": 92,
+      "total": 477
+    },
+    "dermatofibroma": {
+      "train": 211,
+      "val": 60,
+      "test": 64,
+      "total": 335
+    }
+  }
+}

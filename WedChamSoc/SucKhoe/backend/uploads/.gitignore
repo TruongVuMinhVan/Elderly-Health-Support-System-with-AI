@@ -1,0 +1,4 @@
+# Ignore uploaded images (chứa dữ liệu người dùng)
+*
+!.gitignore
+

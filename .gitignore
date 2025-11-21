@@ -1,0 +1,68 @@
+﻿# Project-wide ignores (Python backend, Next.js frontend, Flutter mobile)
+
+# Environment variables
+*.env
+.env.*
+
+# Python cache & virtual environments
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment folders
+.venv/
+venv/
+ENV/
+env/
+
+# Databases (keep out of repo)
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+
+# PyInstaller / build artifacts
+build/
+dist/
+*.spec
+
+# Next.js / Node
+node_modules/
+.next/
+out/
+coverage/
+.cache/
+
+# Package managers
+.npm/
+.yarn/
+.pnp.*
+
+# Editor settings
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+.idea/
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Scripts (explicitly allowed)
+# Do NOT ignore these to allow sharing run scripts
+# *.bat
+# *.ps1
+# *.sh
+# *.cmd
