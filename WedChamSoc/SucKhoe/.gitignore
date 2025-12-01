@@ -74,6 +74,10 @@ backend/models/resnet*.pth
 backend/models/resnet*.pt
 backend/models/*resnet*.pth
 backend/models/*resnet*.pt
+# Ignore all checkpoint files
+backend/models/checkpoints/*.pth
+backend/models/checkpoints/*.pt
+backend/models/checkpoints/*.ckpt
 # But keep label maps, history files, and other configs
 !backend/models/label_map*.json
 !backend/models/*history*.json
