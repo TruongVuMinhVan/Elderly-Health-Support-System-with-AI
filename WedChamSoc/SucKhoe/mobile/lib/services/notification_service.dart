@@ -2,6 +2,8 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:io' show Platform;
+import 'package:flutter/services.dart';
 
 /// Service để quản lý local notifications trên mobile
 class NotificationService {
@@ -11,6 +13,7 @@ class NotificationService {
 
   final FlutterLocalNotificationsPlugin _notifications = FlutterLocalNotificationsPlugin();
   bool _initialized = false;
+  bool? _hasExactAlarmPermission; // Cache permission status
 
   /// Khởi tạo notification service
   Future<void> initialize() async {
@@ -19,6 +22,28 @@ class NotificationService {
     // Initialize timezone
     tz.initializeTimeZones();
     tz.setLocalLocation(tz.getLocation('Asia/Ho_Chi_Minh')); // GMT+7
+
+    // Create notification channel for Android 8.0+ (required for notifications to show)
+    if (Platform.isAndroid) {
+      const androidChannel = AndroidNotificationChannel(
+        'health_reminders', // channel id - must match the one used in AndroidNotificationDetails
+        'Nhắc nhở sức khỏe', // channel name
+        description: 'Thông báo nhắc nhở về lịch hẹn, thuốc men và sức khỏe',
+        importance: Importance.high,
+        playSound: true,
+        enableVibration: true,
+        showBadge: true,
+      );
+
+      final androidPlugin = _notifications.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      
+      if (androidPlugin != null) {
+        // Create the channel
+        await androidPlugin.createNotificationChannel(androidChannel);
+        print('✅ Created notification channel: health_reminders');
+      }
+    }
 
     // Android initialization settings
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -45,10 +70,12 @@ class NotificationService {
     await _requestPermissions();
 
     _initialized = true;
+    print('✅ NotificationService initialized');
   }
 
   /// Request notification permissions
   Future<void> _requestPermissions() async {
+    // Request notification permission (Android 13+)
     if (await _notifications.resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>()
         ?.requestNotificationsPermission() ??
@@ -56,6 +83,12 @@ class NotificationService {
       // Permission granted
     }
 
+    // Request exact alarm permission (Android 12+)
+    if (Platform.isAndroid) {
+      await _requestExactAlarmPermission();
+    }
+
+    // Request iOS permissions
     if (await _notifications.resolvePlatformSpecificImplementation<
             IOSFlutterLocalNotificationsPlugin>()
         ?.requestPermissions(
@@ -65,6 +98,131 @@ class NotificationService {
         ) ??
         false) {
       // Permission granted
+    }
+  }
+
+  /// Request exact alarm permission for Android 12+ (API 31+)
+  Future<bool> _requestExactAlarmPermission() async {
+    if (!Platform.isAndroid) return true;
+    
+    try {
+      final androidPlugin = _notifications.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      
+      if (androidPlugin == null) {
+        _hasExactAlarmPermission = false;
+        return false;
+      }
+      
+      // Try to check if exact alarms are allowed (Android 12+)
+      // This method may not exist in all versions, so we catch and handle gracefully
+      try {
+        final canScheduleExactAlarms = await androidPlugin.canScheduleExactNotifications();
+        if (canScheduleExactAlarms == true) {
+          _hasExactAlarmPermission = true;
+          return true;
+        }
+      } catch (e) {
+        // Method may not exist, assume false
+        print('⚠️ canScheduleExactNotifications not available: $e');
+      }
+      
+      // If not allowed, try to request permission
+      // Note: On Android 12+, user must grant this in system settings
+      try {
+        final requested = await androidPlugin.requestExactAlarmsPermission();
+        if (requested == true) {
+          _hasExactAlarmPermission = true;
+          return true;
+        }
+      } catch (e) {
+        // Method may not exist, that's okay
+        print('⚠️ requestExactAlarmsPermission not available: $e');
+      }
+      
+      // Default to false - will use inexact mode
+      _hasExactAlarmPermission = false;
+      return false;
+    } catch (e) {
+      print('⚠️ Error checking exact alarm permission: $e');
+      _hasExactAlarmPermission = false;
+      return false;
+    }
+  }
+
+  /// Open Android Settings screen for exact alarm permission
+  /// This will open the system settings where user can enable "Allow setting alarms and reminders"
+  Future<bool> openExactAlarmSettings() async {
+    if (!Platform.isAndroid) return false;
+    
+    try {
+      final androidPlugin = _notifications.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      
+      if (androidPlugin == null) {
+        print('⚠️ Android plugin not available');
+        return false;
+      }
+      
+      // This method opens the system settings screen for exact alarm permission
+      final opened = await androidPlugin.requestExactAlarmsPermission();
+      
+      if (opened == true) {
+        print('✅ Opened exact alarm settings screen');
+        // Reset permission cache so we can check again after user returns
+        _hasExactAlarmPermission = null;
+        return true;
+      } else {
+        print('⚠️ Could not open exact alarm settings');
+        return false;
+      }
+    } catch (e) {
+      print('❌ Error opening exact alarm settings: $e');
+      return false;
+    }
+  }
+
+  /// Check if exact alarms are permitted
+  Future<bool> canScheduleExactAlarms() async {
+    // If we already know the permission status, return it
+    if (_hasExactAlarmPermission != null) {
+      return _hasExactAlarmPermission!;
+    }
+    
+    if (!Platform.isAndroid) return true;
+    
+    // Default to false (inexact mode) for safety
+    _hasExactAlarmPermission = false;
+    
+    try {
+      final androidPlugin = _notifications.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      
+      if (androidPlugin == null) {
+        return false;
+      }
+      
+      // Try to check permission, but handle gracefully if method doesn't exist
+      try {
+        // Check if the method exists by trying to call it
+        final canSchedule = await androidPlugin.canScheduleExactNotifications();
+        _hasExactAlarmPermission = canSchedule == true;
+        if (_hasExactAlarmPermission == true) {
+          print('✅ Exact alarms are permitted');
+        } else {
+          print('⚠️ Exact alarms are not permitted, will use inexact mode');
+        }
+        return _hasExactAlarmPermission ?? false;
+      } catch (e) {
+        // Method may not exist or permission denied, default to false (use inexact mode)
+        print('⚠️ Cannot check exact alarm permission (method may not exist), defaulting to inexact mode: $e');
+        _hasExactAlarmPermission = false;
+        return false;
+      }
+    } catch (e) {
+      print('⚠️ Error checking exact alarm permission: $e');
+      _hasExactAlarmPermission = false;
+      return false;
     }
   }
 
@@ -88,9 +246,11 @@ class NotificationService {
     if (!_initialized) await initialize();
 
     final scheduledTime = tz.TZDateTime.from(scheduledDate, tz.local);
+    final now = tz.TZDateTime.now(tz.local);
 
     // Chỉ schedule nếu thời gian trong tương lai
-    if (scheduledTime.isBefore(tz.TZDateTime.now(tz.local))) {
+    if (scheduledTime.isBefore(now)) {
+      print('⚠️ Cannot schedule notification: time is in the past. Scheduled: $scheduledTime, Now: $now');
       return;
     }
 
@@ -116,16 +276,76 @@ class NotificationService {
       iOS: iosDetails,
     );
 
-    await _notifications.zonedSchedule(
-      id,
-      title,
-      body,
-      scheduledTime,
-      notificationDetails,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-      payload: payload,
-    );
+    // Always use inexact mode by default for maximum compatibility
+    // Exact mode requires special permission that users must grant in system settings
+    // Inexact mode works reliably on all Android versions without special permissions
+    bool useExactMode = false;
+    
+    // Only try exact mode if we're certain we have permission (cached from previous successful check)
+    if (Platform.isAndroid && _hasExactAlarmPermission == true) {
+      useExactMode = true;
+    }
+    
+    // Try scheduling with the selected mode
+    AndroidScheduleMode scheduleMode = useExactMode 
+        ? AndroidScheduleMode.exactAllowWhileIdle 
+        : AndroidScheduleMode.inexactAllowWhileIdle;
+    
+    try {
+      await _notifications.zonedSchedule(
+        id,
+        title,
+        body,
+        scheduledTime,
+        notificationDetails,
+        androidScheduleMode: scheduleMode,
+        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+        payload: payload,
+      );
+      print('✅ Notification scheduled: ID=$id, Time=$scheduledTime, Title="$title", Mode=${useExactMode ? "exact" : "inexact"}');
+      return; // Success, exit early
+    } on PlatformException catch (e) {
+      // Handle exact alarm permission error specifically
+      final isExactAlarmError = e.code == 'exact_alarms_not_permitted' || 
+                                e.code == 'exact_alarm_not_permitted' ||
+                                (e.message != null && (
+                                  e.message!.toLowerCase().contains('exact') ||
+                                  e.message!.toLowerCase().contains('alarm')
+                                ));
+      
+      if (isExactAlarmError) {
+        // We got exact alarm error, retry with inexact mode
+        print('⚠️ Exact alarms not permitted (${e.code}), retrying with inexact mode...');
+        _hasExactAlarmPermission = false; // Cache the failure
+        
+        // Retry with inexact mode
+        try {
+          await _notifications.zonedSchedule(
+            id,
+            title,
+            body,
+            scheduledTime,
+            notificationDetails,
+            androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+            uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+            payload: payload,
+          );
+          print('✅ Notification scheduled (inexact mode after retry): ID=$id, Time=$scheduledTime, Title="$title"');
+          return; // Success after retry
+        } catch (retryError) {
+          print('❌ Error scheduling notification (inexact mode retry): $retryError');
+          // Don't rethrow - just log the error
+        }
+      } else {
+        // Other error
+        print('❌ Error scheduling notification: ${e.code} - ${e.message}');
+        // Don't rethrow - allow app to continue even if notification fails
+      }
+    } catch (e) {
+      // Catch any other errors
+      print('❌ Error scheduling notification (unexpected): $e');
+      // Don't rethrow - allow app to continue even if notification fails
+    }
   }
 
   /// Schedule notification cho medication
@@ -156,19 +376,36 @@ class NotificationService {
     String? doctorName,
     int advanceMinutes = 30,
   }) async {
-    final reminderTime = scheduledTime.subtract(Duration(minutes: advanceMinutes));
-    
-    String body = 'Bạn có lịch hẹn: $title';
-    if (location != null) body += '\nĐịa điểm: $location';
-    if (doctorName != null) body += '\nBác sĩ: $doctorName';
-    
-    await scheduleNotification(
-      id: 2000 + scheduleId, // Unique ID cho schedule reminders
-      title: 'Nhắc nhở lịch hẹn',
-      body: body,
-      scheduledDate: reminderTime,
-      payload: 'schedule:$scheduleId',
-    );
+    try {
+      final reminderTime = scheduledTime.subtract(Duration(minutes: advanceMinutes));
+      
+      // Chỉ schedule nếu reminder time trong tương lai
+      if (reminderTime.isBefore(DateTime.now())) {
+        print('⏭️ Skipping reminder for schedule $scheduleId: reminder time is in the past ($reminderTime)');
+        return; // Không schedule nếu đã quá thời gian nhắc
+      }
+      
+      String body = 'Bạn có lịch hẹn: $title';
+      if (location != null && location.isNotEmpty) body += '\nĐịa điểm: $location';
+      if (doctorName != null && doctorName.isNotEmpty) body += '\nBác sĩ: $doctorName';
+      body += '\nThời gian: ${scheduledTime.hour.toString().padLeft(2, '0')}:${scheduledTime.minute.toString().padLeft(2, '0')}';
+      
+      // scheduleNotification handles errors internally and retries with inexact mode
+      await scheduleNotification(
+        id: 2000 + scheduleId, // Unique ID cho schedule reminders
+        title: 'Nhắc nhở lịch hẹn',
+        body: body,
+        scheduledDate: reminderTime,
+        payload: 'schedule:$scheduleId',
+      );
+      
+      // Log để debug
+      print('📅 Scheduled reminder for schedule $scheduleId: $title at ${reminderTime.toString()} (${advanceMinutes} min before)');
+    } catch (e) {
+      // This should rarely be hit since scheduleNotification handles errors internally
+      print('❌ Error in scheduleAppointmentReminder for schedule $scheduleId: $e');
+      // Don't rethrow - let the caller continue
+    }
   }
 
   /// Cancel một notification
@@ -228,11 +465,14 @@ class NotificationService {
     if (!_initialized) await initialize();
 
     const androidDetails = AndroidNotificationDetails(
-      'health_reminders',
+      'health_reminders', // Must match channel id
       'Nhắc nhở sức khỏe',
       channelDescription: 'Thông báo nhắc nhở về lịch hẹn, thuốc men và sức khỏe',
       importance: Importance.high,
       priority: Priority.high,
+      showWhen: true,
+      enableVibration: true,
+      playSound: true,
     );
 
     const iosDetails = DarwinNotificationDetails(
@@ -246,12 +486,26 @@ class NotificationService {
       iOS: iosDetails,
     );
 
-    await _notifications.show(
-      id,
-      title,
-      body,
-      notificationDetails,
-      payload: payload,
+    try {
+      await _notifications.show(
+        id,
+        title,
+        body,
+        notificationDetails,
+        payload: payload,
+      );
+      print('✅ Test notification shown: ID=$id, Title="$title"');
+    } catch (e) {
+      print('❌ Error showing test notification: $e');
+    }
+  }
+
+  /// Test notification immediately (for debugging)
+  Future<void> testNotification() async {
+    await showNotification(
+      id: 9999,
+      title: 'Test Notification',
+      body: 'Nếu bạn thấy thông báo này, hệ thống notifications đang hoạt động!',
     );
   }
 }

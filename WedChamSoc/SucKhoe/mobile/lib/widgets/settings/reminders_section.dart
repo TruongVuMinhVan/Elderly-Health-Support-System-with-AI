@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'dart:io' show Platform;
 import 'settings_section_card.dart';
+import '../../services/notification_service.dart';
 
 /// Widget for reminder settings section
 class RemindersSection extends StatelessWidget {
@@ -97,6 +99,71 @@ class RemindersSection extends StatelessWidget {
           value: sound,
           onChanged: onSoundChanged,
         ),
+        
+        // Exact alarm permission info (Android only)
+        if (Platform.isAndroid) ...[
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blue[50],
+              border: Border.all(color: Colors.blue[200]!),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Quyền nhắc nhở chính xác',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.blue[900],
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Để nhắc nhở hoạt động chính xác, vui lòng bật quyền "Allow setting alarms and reminders" trong cài đặt hệ thống.',
+                  style: TextStyle(
+                    color: Colors.blue[800],
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      final opened = await NotificationService().openExactAlarmSettings();
+                      if (!opened && context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Không thể mở cài đặt. Vui lòng mở thủ công trong Settings > Apps > app_mobile > Alarms & reminders'),
+                            duration: Duration(seconds: 4),
+                          ),
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.settings, size: 18),
+                    label: const Text('Mở cài đặt hệ thống'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.blue[700],
+                      side: BorderSide(color: Colors.blue[300]!),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }

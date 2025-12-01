@@ -5,7 +5,7 @@ Health records API routes for Elderly Health Support System
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, func
-from typing import List, Optional
+from typing import List, Optional, Dict
 from pydantic import BaseModel, validator
 from datetime import datetime, date, timedelta
 import logging
@@ -323,6 +323,133 @@ async def delete_health_record(
             detail="Failed to delete health record"
         )
 
+@router.get("/stats/all")
+async def get_all_health_stats(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_database)
+):
+    """
+    Get health statistics for all record types in a single query (optimized)
+    """
+    try:
+        user_id = current_user.get("sub")
+        if isinstance(user_id, str):
+            user_id = int(user_id)
+
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+
+        # Get all records in a single query (much more efficient)
+        # Limit to 1000 most recent records per type to reduce memory usage
+        all_records = db.query(HealthRecord).filter(
+            HealthRecord.user_id == user.id
+        ).order_by(desc(HealthRecord.recorded_at)).limit(5000).all()  # Limit total records to reduce RAM
+
+        # Group records by type
+        records_by_type = {}
+        for record in all_records:
+            record_type = record.record_type.value
+            if record_type not in records_by_type:
+                records_by_type[record_type] = []
+            records_by_type[record_type].append(record)
+
+        # Calculate stats for each type
+        result = {}
+        now = datetime.now()
+        week_ago = now - timedelta(days=7)
+        month_ago = now - timedelta(days=30)
+
+        def get_numeric_value(record):
+            """Extract numeric value from record for averaging"""
+            try:
+                if record.record_type == RecordTypeEnum.blood_pressure:
+                    return float(record.systolic_pressure) if record.systolic_pressure else None
+                elif record.record_type == RecordTypeEnum.blood_sugar:
+                    return float(record.blood_sugar) if record.blood_sugar else None
+                elif record.record_type == RecordTypeEnum.weight:
+                    return float(record.weight) if record.weight else None
+                elif record.record_type == RecordTypeEnum.heart_rate:
+                    return float(record.heart_rate) if record.heart_rate else None
+                elif record.record_type == RecordTypeEnum.temperature:
+                    return float(record.temperature) if record.temperature else None
+                return None
+            except (ValueError, TypeError):
+                return None
+
+        for record_type, records in records_by_type.items():
+            if not records:
+                result[record_type] = {
+                    "record_type": record_type,
+                    "total_records": 0,
+                    "latest_value": None,
+                    "latest_date": None,
+                    "average_last_7_days": None,
+                    "average_last_30_days": None,
+                    "trend": "stable"
+                }
+                continue
+
+            latest_record = records[0]
+            latest_value = latest_record.get_display_value()
+            latest_date = latest_record.recorded_at
+
+            recent_records_7d = [r for r in records if r.recorded_at >= week_ago]
+            recent_records_30d = [r for r in records if r.recorded_at >= month_ago]
+
+            numeric_values_7d = [get_numeric_value(r) for r in recent_records_7d]
+            numeric_values_7d = [v for v in numeric_values_7d if v is not None]
+            avg_7d = sum(numeric_values_7d) / len(numeric_values_7d) if numeric_values_7d else None
+
+            numeric_values_30d = [get_numeric_value(r) for r in recent_records_30d]
+            numeric_values_30d = [v for v in numeric_values_30d if v is not None]
+            avg_30d = sum(numeric_values_30d) / len(numeric_values_30d) if numeric_values_30d else None
+
+            trend = "stable"
+            if len(recent_records_7d) >= 2 and avg_7d and avg_30d:
+                if avg_7d > avg_30d * 1.05:
+                    trend = "improving" if record_type == "weight" else "declining"
+                elif avg_7d < avg_30d * 0.95:
+                    trend = "declining" if record_type == "weight" else "improving"
+
+            result[record_type] = {
+                "record_type": record_type,
+                "total_records": len(records),
+                "latest_value": latest_value,
+                "latest_date": latest_date.isoformat() if latest_date else None,
+                "average_last_7_days": avg_7d,
+                "average_last_30_days": avg_30d,
+                "trend": trend
+            }
+
+        # Add empty stats for types that don't have records
+        all_types = ['blood_pressure', 'heart_rate', 'blood_sugar', 'weight', 'temperature']
+        for record_type in all_types:
+            if record_type not in result:
+                result[record_type] = {
+                    "record_type": record_type,
+                    "total_records": 0,
+                    "latest_value": None,
+                    "latest_date": None,
+                    "average_last_7_days": None,
+                    "average_last_30_days": None,
+                    "trend": "stable"
+                }
+
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting all health stats: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get health statistics"
+        )
+
 @router.get("/stats/{record_type}", response_model=HealthStatsResponse)
 async def get_health_stats(
     record_type: str,
@@ -345,11 +472,11 @@ async def get_health_stats(
                 detail="User not found"
             )
 
-        # Get all records for this type
+        # Get all records for this type - limit to recent records to reduce memory usage
         records = db.query(HealthRecord).filter(
             HealthRecord.user_id == user.id,
             HealthRecord.record_type == RecordTypeEnum(record_type)
-        ).order_by(desc(HealthRecord.recorded_at)).all()
+        ).order_by(desc(HealthRecord.recorded_at)).limit(1000).all()  # Limit to 1000 most recent to reduce RAM usage
 
         if not records:
             return HealthStatsResponse(

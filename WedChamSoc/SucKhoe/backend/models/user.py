@@ -2,7 +2,7 @@
 User models for Elderly Health Support System
 """
 
-from sqlalchemy import Column, Integer, String, Date, Enum, Text, Boolean, TIMESTAMP, func, ForeignKey
+from sqlalchemy import Column, Integer, String, Date, Enum, Text, Boolean, TIMESTAMP, func, ForeignKey, UniqueConstraint, Index
 from sqlalchemy.orm import relationship
 from database import Base
 import enum
@@ -107,6 +107,7 @@ class User(Base):
 class UserSetting(Base):
     """
     User settings model for storing user preferences
+    Each user can have multiple settings, but each setting_key should be unique per user
     """
     __tablename__ = "user_settings"
 
@@ -118,6 +119,12 @@ class UserSetting(Base):
     created_at = Column(TIMESTAMP, server_default=func.current_timestamp())
     updated_at = Column(TIMESTAMP, server_default=func.current_timestamp(
     ), onupdate=func.current_timestamp())
+    
+    # Add unique constraint on (user_id, setting_key) to prevent duplicates
+    __table_args__ = (
+        UniqueConstraint('user_id', 'setting_key', name='uq_user_setting'),
+        Index('idx_user_setting_key', 'user_id', 'setting_key'),
+    )
 
     # Relationships
     # user = relationship("User", back_populates="user_settings")  # Temporarily disabled

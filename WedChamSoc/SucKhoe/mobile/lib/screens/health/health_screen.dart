@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../api/api_client.dart';
 import '../../api/health_service.dart';
 import '../../models/health.dart' show HealthRecordModel;
+import '../../styles/theme.dart';
 import '../../widgets/health/add_health_record_modal.dart';
 import '../../widgets/health/health_constants.dart';
 import '../../widgets/health/health_stat_card.dart';
@@ -25,10 +26,36 @@ class _HealthScreenState extends State<HealthScreen> {
   int _currentPage = 0;
   static const int _recordsPerPage = 5;
 
+  DateTime? _lastLoadTime;
+  bool _isInitialLoad = true;
+  static const _minRefreshInterval = Duration(seconds: 2);
+
   @override
   void initState() {
     super.initState();
     _loadData();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Skip auto-refresh on first load (initState already loads data)
+    if (_isInitialLoad) {
+      _isInitialLoad = false;
+      return;
+    }
+    
+    // Auto-refresh when returning to this screen (e.g., from another screen)
+    // Only refresh if enough time has passed since last load to avoid excessive reloading
+    final now = DateTime.now();
+    if (_lastLoadTime == null || 
+        now.difference(_lastLoadTime!) > _minRefreshInterval) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _loadData();
+        }
+      });
+    }
   }
 
   Future<void> _loadData() async {
@@ -38,34 +65,23 @@ class _HealthScreenState extends State<HealthScreen> {
     });
 
     try {
-      // Load recent records
-      final records = await _healthService.getRecords(limit: 20);
+      // Load records and all stats in parallel (optimized: 1 stats call instead of 4)
+      final recordsFuture = _healthService.getRecords(limit: 20);
+      final allStatsFuture = _healthService.getAllStats();
       
-      // Load stats for each type
-      final statsMap = <String, Map<String, dynamic>>{};
-      for (final type in HealthConstants.healthTypes) {
-        try {
-          final stats = await _healthService.getStats(type['type'] as String);
-          statsMap[type['type'] as String] = stats;
-        } catch (_) {
-          // If no stats, use default
-          statsMap[type['type'] as String] = {
-            'total_records': 0,
-            'latest_value': null,
-            'latest_date': null,
-            'average_last_7_days': null,
-            'trend': 'stable',
-          };
-        }
-      }
+      final results = await Future.wait([
+        recordsFuture,
+        allStatsFuture,
+      ]);
 
       if (!mounted) return;
       setState(() {
-        _recentRecords = records;
-        _stats = statsMap;
+        _recentRecords = results[0] as List<HealthRecordModel>;
+        _stats = results[1] as Map<String, Map<String, dynamic>>;
         _isLoading = false;
         // Reset về trang đầu khi tải lại dữ liệu
         _currentPage = 0;
+        _lastLoadTime = DateTime.now();
       });
     } on TokenExpiredException {
       if (!mounted) return;
@@ -99,9 +115,19 @@ class _HealthScreenState extends State<HealthScreen> {
       builder: (context) => AddHealthRecordModal(
         selectedType: selectedType,
         healthService: _healthService,
-        onSuccess: _loadData,
+        onSuccess: () {
+          // This will be called after dialog closes
+        },
       ),
     );
+    
+    // Reload data after dialog closes (regardless of result)
+    // This ensures data is refreshed even if onSuccess wasn't called
+    if (mounted) {
+      // Reset last load time to force immediate refresh
+      _lastLoadTime = null;
+      _loadData();
+    }
   }
 
   Future<void> _deleteRecord(int recordId) async {
@@ -117,7 +143,9 @@ class _HealthScreenState extends State<HealthScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.healthDanger,
+            ),
             child: const Text('Xóa'),
           ),
         ],
@@ -127,12 +155,21 @@ class _HealthScreenState extends State<HealthScreen> {
     if (confirm != true) return;
 
     try {
-      await _healthService.deleteRecord(recordId);
-      if (!mounted) return;
-      _loadData();
+      // Optimistic update: Remove from UI immediately
+      setState(() {
+        _recentRecords.removeWhere((r) => r.id == recordId);
+      });
+      
+      // Show success message immediately
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Đã xóa bản ghi thành công')),
       );
+      
+      // Delete and reload in background
+      _lastLoadTime = null;
+      await _healthService.deleteRecord(recordId);
+      if (!mounted) return;
+      _loadData();
     } on TokenExpiredException {
       if (!mounted) return;
       _navigateToLogin();
@@ -141,7 +178,7 @@ class _HealthScreenState extends State<HealthScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Không thể xóa bản ghi: ${e.toString()}'),
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.healthDanger,
         ),
       );
     }
@@ -150,15 +187,39 @@ class _HealthScreenState extends State<HealthScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     if (_isLoading) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Theo dõi sức khỏe')),
+        appBar: AppBar(
+          title: const Text('Theo dõi sức khỏe'),
+          backgroundColor: Colors.blue,
+          foregroundColor: Colors.white,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              // Navigate to dashboard
+              Navigator.pushReplacementNamed(context, '/dashboard');
+            },
+          ),
+        ),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Theo dõi sức khỏe')),
+      appBar: AppBar(
+        title: const Text('Theo dõi sức khỏe'),
+        backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            // Navigate to dashboard
+            Navigator.pushReplacementNamed(context, '/dashboard');
+          },
+        ),
+      ),
       body: RefreshIndicator(
         onRefresh: _loadData,
         child: ListView(
@@ -167,10 +228,13 @@ class _HealthScreenState extends State<HealthScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Theo dõi sức khỏe',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                Expanded(
+                  child: const Text(
+                    'Theo dõi sức khỏe',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  ),
                 ),
+                const SizedBox(width: 8),
                 ElevatedButton.icon(
                   onPressed: () => _showAddModal(),
                   icon: const Icon(Icons.add),
@@ -185,16 +249,26 @@ class _HealthScreenState extends State<HealthScreen> {
                 padding: const EdgeInsets.all(12),
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade50,
+                  color: isDark 
+                      ? AppColors.healthDanger.withOpacity(0.2)
+                      : Colors.red.shade50,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red.shade200),
+                  border: Border.all(
+                    color: isDark 
+                        ? AppColors.healthDanger.withOpacity(0.5)
+                        : Colors.red.shade200,
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       _error!,
-                      style: TextStyle(color: Colors.red.shade800),
+                      style: TextStyle(
+                        color: isDark 
+                            ? AppColors.healthDanger.withOpacity(0.9)
+                            : Colors.red.shade800,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     TextButton(

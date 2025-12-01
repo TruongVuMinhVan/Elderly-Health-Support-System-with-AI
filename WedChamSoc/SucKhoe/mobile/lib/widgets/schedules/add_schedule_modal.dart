@@ -52,7 +52,9 @@ class _AddScheduleModalState extends State<AddScheduleModal> {
       _locationCtrl.text = schedule.location ?? '';
       _doctorNameCtrl.text = schedule.doctorName ?? '';
       _scheduleType = schedule.scheduleType;
-      _scheduledDateTime = DateTime.parse(schedule.scheduledDatetime);
+      // Parse datetime and convert to local time if needed
+      final parsedDate = DateTime.parse(schedule.scheduledDatetime);
+      _scheduledDateTime = parsedDate.isUtc ? parsedDate.toLocal() : parsedDate;
       _isRecurring = schedule.isRecurring;
       _recurrencePattern = schedule.recurrencePattern;
     }
@@ -117,9 +119,13 @@ class _AddScheduleModalState extends State<AddScheduleModal> {
         );
       }
 
-      widget.onSuccess();
       if (!mounted) return;
+      // Close modal first, then call onSuccess to ensure screen rebuilds
       Navigator.pop(context);
+      // Use post-frame callback to ensure modal is fully closed before reloading
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.onSuccess();
+      });
     } on TokenExpiredException {
       if (!mounted) return;
       Navigator.pop(context);
@@ -262,20 +268,56 @@ class _AddScheduleModalState extends State<AddScheduleModal> {
                         title: Text('Giờ: ${DateFormat('HH:mm').format(_scheduledDateTime)}'),
                         trailing: const Icon(Icons.access_time),
                         onTap: () async {
-                          final TimeOfDay? pickedTime = await showTimePicker(
-                            context: context,
-                            initialTime: TimeOfDay.fromDateTime(_scheduledDateTime),
-                          );
-                          if (pickedTime != null) {
-                            setState(() {
-                              _scheduledDateTime = DateTime(
-                                _scheduledDateTime.year,
-                                _scheduledDateTime.month,
-                                _scheduledDateTime.day,
-                                pickedTime.hour,
-                                pickedTime.minute,
+                          try {
+                            final TimeOfDay? pickedTime = await showTimePicker(
+                              context: context,
+                              initialTime: TimeOfDay.fromDateTime(_scheduledDateTime),
+                              helpText: 'Chọn thời gian',
+                              cancelText: 'Hủy',
+                              confirmText: 'OK',
+                              hourLabelText: 'Giờ',
+                              minuteLabelText: 'Phút',
+                              builder: (BuildContext context, Widget? child) {
+                                return MediaQuery(
+                                  data: MediaQuery.of(context).copyWith(
+                                    alwaysUse24HourFormat: true, // Force 24-hour format
+                                  ),
+                                  child: Theme(
+                                    data: Theme.of(context).copyWith(
+                                      colorScheme: ColorScheme.light(
+                                        primary: Theme.of(context).colorScheme.primary,
+                                        onPrimary: Colors.white,
+                                        surface: Theme.of(context).cardColor,
+                                        onSurface: Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black,
+                                      ),
+                                      dialogBackgroundColor: Theme.of(context).cardColor,
+                                    ),
+                                    child: child!,
+                                  ),
+                                );
+                              },
+                            );
+                            if (pickedTime != null) {
+                              setState(() {
+                                _scheduledDateTime = DateTime(
+                                  _scheduledDateTime.year,
+                                  _scheduledDateTime.month,
+                                  _scheduledDateTime.day,
+                                  pickedTime.hour,
+                                  pickedTime.minute,
+                                );
+                              });
+                            }
+                          } catch (e) {
+                            // Handle any errors with time picker
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Lỗi chọn thời gian: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
                               );
-                            });
+                            }
                           }
                         },
                       ),

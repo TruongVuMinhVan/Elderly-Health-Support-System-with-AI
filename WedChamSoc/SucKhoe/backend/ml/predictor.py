@@ -62,8 +62,11 @@ class SkinDiseasePredictor:
         if label_map_file is None:
             if config_name == "10classes":
                 label_map_file = "models/label_map_10classes.json"
+            elif config_name == "from_dataset":
+                label_map_file = "models/label_map_from_dataset.json"
             else:
-                label_map_file = "models/label_map.json"
+                # Default: try from_dataset first, then fallback to 10classes
+                label_map_file = "models/label_map_from_dataset.json"
         
         if model_path is None:
             model_path = f"models/{model_name}_best.pth"
@@ -105,7 +108,7 @@ class SkinDiseasePredictor:
             model.fc = nn.Sequential(
                 nn.Linear(model.fc.in_features, 512),
                 nn.ReLU(),
-                nn.Dropout(0.5),
+                nn.Dropout(0.8),  # Updated to match training (0.8)
                 nn.Linear(512, self.num_classes)
             )
         
@@ -115,7 +118,7 @@ class SkinDiseasePredictor:
             model.classifier = nn.Sequential(
                 nn.Linear(in_features, 512),
                 nn.ReLU(),
-                nn.Dropout(0.5),
+                nn.Dropout(0.8),  # Updated to match training (0.8)
                 nn.Linear(512, self.num_classes)
             )
         
@@ -124,15 +127,38 @@ class SkinDiseasePredictor:
             model.head = nn.Sequential(
                 nn.Linear(model.head.in_features, 512),
                 nn.ReLU(),
-                nn.Dropout(0.5),
+                nn.Dropout(0.8),  # Updated to match training (0.8)
                 nn.Linear(512, self.num_classes)
             )
         
         else:
             raise ValueError(f"Unknown model: {self.model_name}")
         
-        # Load weights
-        model.load_state_dict(torch.load(self.model_path, map_location=device))
+        # Load weights - handle both full checkpoint and state_dict only
+        checkpoint = torch.load(self.model_path, map_location=device, weights_only=False)
+        if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
+            # Full checkpoint format
+            model_state_dict = checkpoint['model_state_dict']
+            # Verify num_classes matches
+            fc_keys = [k for k in model_state_dict.keys() if 'fc' in k and 'weight' in k]
+            if fc_keys:
+                # Find output layer (usually last fc layer)
+                output_key = None
+                for key in fc_keys:
+                    if 'fc.3' in key or 'fc.2' in key or key == fc_keys[-1]:
+                        output_key = key
+                        break
+                if output_key:
+                    model_num_classes = model_state_dict[output_key].shape[0]
+                    if model_num_classes != self.num_classes:
+                        logger.warning(
+                            f"⚠️  Model has {model_num_classes} classes but label map has {self.num_classes} classes. "
+                            f"This may cause prediction errors!"
+                        )
+            model.load_state_dict(model_state_dict)
+        else:
+            # State dict only
+            model.load_state_dict(checkpoint)
         return model
     
     def preprocess_image(self, image_input, image_size: int = 224) -> torch.Tensor:

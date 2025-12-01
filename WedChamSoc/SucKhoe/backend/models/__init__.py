@@ -5,6 +5,7 @@ from .health import HealthProfile, HealthRecord, RecordTypeEnum, BloodTypeEnum
 from .medication import Medication
 from .chat import ChatSession, ChatMessage, MessageTypeEnum
 from .skin_disease import SkinDisease, SkinDiseasePrediction, SeverityEnum
+from .doctor import Doctor
 
 __all__ = [
     "User",
@@ -20,4 +21,5 @@ __all__ = [
     "SkinDisease",
     "SkinDiseasePrediction",
     "SeverityEnum",
+    "Doctor",
 ]

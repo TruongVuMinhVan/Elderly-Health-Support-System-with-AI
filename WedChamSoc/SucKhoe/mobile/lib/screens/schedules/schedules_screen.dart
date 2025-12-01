@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../api/api_client.dart';
 import '../../api/schedules_service.dart';
+import '../../styles/theme.dart';
 import '../../models/schedule.dart' show ScheduleModel, ScheduleType;
 import '../../utils/date_formatter.dart';
 import '../../widgets/schedules/add_schedule_modal.dart';
@@ -28,6 +29,8 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
   int _currentPage = 0;
   static const int _recordsPerPage = 5;
 
+  bool get isDark => Theme.of(context).brightness == Brightness.dark;
+
   final List<Map<String, dynamic>> _filters = const [
     {'value': 'all', 'label': 'Tất cả'},
     {'value': 'appointment', 'label': 'Lịch hẹn'},
@@ -35,10 +38,36 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
     {'value': 'checkup', 'label': 'Khám bệnh'},
   ];
 
+  DateTime? _lastLoadTime;
+  bool _isInitialLoad = true;
+  static const _minRefreshInterval = Duration(seconds: 2);
+
   @override
   void initState() {
     super.initState();
     _loadData();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Skip auto-refresh on first load (initState already loads data)
+    if (_isInitialLoad) {
+      _isInitialLoad = false;
+      return;
+    }
+    
+    // Auto-refresh when returning to this screen (e.g., from another screen)
+    // Only refresh if enough time has passed since last load to avoid excessive reloading
+    final now = DateTime.now();
+    if (_lastLoadTime == null || 
+        now.difference(_lastLoadTime!) > _minRefreshInterval) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _loadData();
+        }
+      });
+    }
   }
 
   Future<void> _loadData() async {
@@ -49,27 +78,23 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
     });
 
     try {
-      // Load today's schedules
-      final today = await _schedulesService.getTodaySchedules();
-
-      // Load upcoming schedules
-      final upcoming = await _schedulesService.getSchedules(
-        upcomingOnly: true,
-        limit: 10,
-      );
-
-      // Load all schedules with filter
-      final all = await _schedulesService.getSchedules(
-        scheduleType: _selectedFilter == 'all' ? null : _selectedFilter,
-      );
+      // Load all data in parallel for faster loading
+      final results = await Future.wait([
+        _schedulesService.getTodaySchedules(),
+        _schedulesService.getSchedules(upcomingOnly: true, limit: 10),
+        _schedulesService.getSchedules(
+          scheduleType: _selectedFilter == 'all' ? null : _selectedFilter,
+        ),
+      ]);
 
       if (!mounted) return;
       setState(() {
-        _todaySchedules = today;
-        _upcomingSchedules = upcoming;
-        _allSchedules = all;
+        _todaySchedules = results[0] as List<ScheduleModel>;
+        _upcomingSchedules = results[1] as List<ScheduleModel>;
+        _allSchedules = results[2] as List<ScheduleModel>;
         _isLoading = false;
         _currentPage = 0; // Reset to first page when loading new data
+        _lastLoadTime = DateTime.now();
       });
     } on TokenExpiredException {
       if (!mounted) return;
@@ -98,21 +123,30 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
   }
 
   Future<void> _showAddModal({ScheduleModel? editingSchedule}) async {
-    await showModalBottomSheet(
+    final result = await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       builder: (context) {
         return AddScheduleModal(
           schedulesService: _schedulesService,
-          onSuccess: () async {
-            // Sync reminders sau khi thêm/sửa schedule
-            await ReminderService().forceSync();
-            _loadData();
+          onSuccess: () {
+            // This will be called after modal closes
           },
           editingSchedule: editingSchedule,
         );
       },
     );
+    
+    // Reload data after modal closes (regardless of result)
+    // This ensures data is refreshed even if onSuccess wasn't called
+    if (mounted) {
+      // Reset last load time to force refresh
+      _lastLoadTime = null;
+      await ReminderService().forceSync();
+      // Reset last load time to force immediate refresh
+      _lastLoadTime = null;
+      _loadData();
+    }
   }
 
   Future<void> _deleteSchedule(int scheduleId) async {
@@ -128,7 +162,9 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.healthDanger,
+            ),
             child: const Text('Xóa'),
           ),
         ],
@@ -138,14 +174,26 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
     if (confirm != true) return;
 
     try {
-      await _schedulesService.deleteSchedule(scheduleId);
-      // Sync reminders sau khi xóa schedule
-      await ReminderService().forceSync();
-      if (!mounted) return;
-      _loadData();
+      // Optimistic update: Remove from UI immediately
+      setState(() {
+        _todaySchedules.removeWhere((s) => s.id == scheduleId);
+        _upcomingSchedules.removeWhere((s) => s.id == scheduleId);
+        _allSchedules.removeWhere((s) => s.id == scheduleId);
+      });
+      
+      // Show success message immediately
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Đã xóa lịch hẹn thành công')),
       );
+      
+      // Delete and sync in background
+      await _schedulesService.deleteSchedule(scheduleId);
+      // Sync reminders in parallel with reload
+      _lastLoadTime = null;
+      await Future.wait([
+        ReminderService().forceSync(),
+        _loadData(),
+      ]);
     } on TokenExpiredException {
       if (!mounted) return;
       _navigateToLogin();
@@ -154,7 +202,7 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Không thể xóa lịch hẹn: ${e.toString()}'),
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.healthDanger,
         ),
       );
     }
@@ -163,9 +211,9 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
   Color _getTypeColor(ScheduleType type) {
     switch (type) {
       case ScheduleType.appointment:
-        return Colors.blue;
+        return AppColors.primary;
       case ScheduleType.medication:
-        return Colors.green;
+        return AppColors.healthNormal;
       case ScheduleType.checkup:
         return Colors.orange;
     }
@@ -185,13 +233,35 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Lịch hẹn & Nhắc nhở')),
+        appBar: AppBar(
+          title: const Text('Lịch hẹn & Nhắc nhở'),
+          backgroundColor: Colors.blue,
+          foregroundColor: Colors.white,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              // Navigate to dashboard
+              Navigator.pushReplacementNamed(context, '/dashboard');
+            },
+          ),
+        ),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Lịch hẹn & Nhắc nhở')),
+      appBar: AppBar(
+        title: const Text('Lịch hẹn & Nhắc nhở'),
+        backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            // Navigate to dashboard
+            Navigator.pushReplacementNamed(context, '/dashboard');
+          },
+        ),
+      ),
       body: RefreshIndicator(
         onRefresh: _loadData,
         child: ListView(
@@ -200,16 +270,24 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Lịch hẹn & Nhắc nhở',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                Flexible(
+                  flex: 2,
+                  child: const Text(
+                    'Lịch hẹn & Nhắc nhở',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-                ElevatedButton.icon(
-                  onPressed: () => _showAddModal(),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Thêm lịch hẹn'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.primary,
+                const SizedBox(width: 8),
+                Flexible(
+                  child: ElevatedButton.icon(
+                    onPressed: () => _showAddModal(),
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Thêm', style: TextStyle(fontSize: 12)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
                   ),
                 ),
               ],
@@ -221,16 +299,26 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                 padding: const EdgeInsets.all(12),
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade50,
+                  color: isDark 
+                      ? AppColors.healthDanger.withOpacity(0.2)
+                      : Colors.red.shade50,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red.shade200),
+                  border: Border.all(
+                    color: isDark 
+                        ? AppColors.healthDanger.withOpacity(0.5)
+                        : Colors.red.shade200,
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       _error!,
-                      style: TextStyle(color: Colors.red.shade800),
+                      style: TextStyle(
+                        color: isDark 
+                            ? AppColors.healthDanger.withOpacity(0.9)
+                            : Colors.red.shade800,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     TextButton(
@@ -276,12 +364,14 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                     ),
                     const SizedBox(height: 8),
                     if (_todaySchedules.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 12),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                         child: Center(
                           child: Text(
                             'Không có lịch hẹn nào hôm nay',
-                            style: TextStyle(color: Colors.black54),
+                            style: TextStyle(
+                              color: Theme.of(context).textTheme.bodySmall?.color,
+                            ),
                           ),
                         ),
                       )
@@ -332,12 +422,14 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                     ),
                     const SizedBox(height: 8),
                     if (_upcomingSchedules.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 12),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                         child: Center(
                           child: Text(
                             'Không có lịch hẹn sắp tới',
-                            style: TextStyle(color: Colors.black54),
+                            style: TextStyle(
+                              color: Theme.of(context).textTheme.bodySmall?.color,
+                            ),
                           ),
                         ),
                       )
@@ -422,12 +514,14 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                     ),
                     const SizedBox(height: 8),
                     if (_allSchedules.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 24),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 24),
                         child: Center(
                           child: Text(
                             'Chưa có lịch hẹn nào',
-                            style: TextStyle(color: Colors.black54),
+                            style: TextStyle(
+                              color: Theme.of(context).textTheme.bodySmall?.color,
+                            ),
                           ),
                         ),
                       )

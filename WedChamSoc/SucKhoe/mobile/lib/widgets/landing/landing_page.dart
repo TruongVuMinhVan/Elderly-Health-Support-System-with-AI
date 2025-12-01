@@ -78,6 +78,59 @@ class LandingPage extends StatelessWidget {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 20),
+                    // Quick access buttons (no login required)
+                    // Nổi bật nút Chẩn đoán nhanh
+                    Center(
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: const Color(0xFF0EA5E9),
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          elevation: 8,
+                          shadowColor: Colors.black.withOpacity(0.3),
+                        ),
+                        onPressed: () => Navigator.pushNamed(context, '/quick-scan'),
+                        icon: const Icon(Icons.camera_alt, size: 24),
+                        label: const Text(
+                          "Chẩn đoán nhanh",
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            side: const BorderSide(color: Colors.white70, width: 1.5),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          onPressed: () => Navigator.pushNamed(context, '/chatbot-consult'),
+                          icon: const Icon(Icons.chat_bubble_outline, size: 18),
+                          label: const Text("Tư vấn sơ bộ", style: TextStyle(fontSize: 13)),
+                        ),
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            side: const BorderSide(color: Colors.white70, width: 1.5),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          onPressed: () => Navigator.pushNamed(context, '/doctors'),
+                          icon: const Icon(Icons.local_hospital, size: 18),
+                          label: const Text("Tìm bác sĩ", style: TextStyle(fontSize: 13)),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -159,7 +212,7 @@ class _FeaturesSection extends StatelessWidget {
             itemCount: features.length,
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              childAspectRatio: 1.1,
+              childAspectRatio: 1.15,
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
             ),
@@ -181,6 +234,7 @@ class _FeaturesSection extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
                       padding: const EdgeInsets.all(12),
@@ -195,20 +249,24 @@ class _FeaturesSection extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Text(
-                      f['title'] as String,
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                    Flexible(
+                      child: Text(
+                        f['title'] as String,
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                      ),
                     ),
                     const SizedBox(height: 6),
-                    Text(
-                      f['desc'] as String,
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                    Flexible(
+                      child: Text(
+                        f['desc'] as String,
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                      ),
                     ),
                   ],
                 ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/medication.dart';
 import '../../utils/date_formatter.dart';
+import '../../styles/theme.dart';
 
 /// Widget for displaying a medication card
 class MedicationCard extends StatelessWidget {
@@ -21,6 +22,7 @@ class MedicationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Card(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
@@ -67,11 +69,17 @@ class MedicationCard extends StatelessWidget {
             if (medication.dosage != null)
               Row(
                 children: [
-                  Icon(Icons.scale, size: 16, color: Colors.grey[600]),
+                  Icon(
+                    Icons.scale, 
+                    size: 16, 
+                    color: Theme.of(context).textTheme.bodySmall?.color,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     'Liều dùng: ${medication.dosage}',
-                    style: TextStyle(color: Colors.grey[700]),
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodySmall?.color,
+                    ),
                   ),
                 ],
               ),
@@ -80,11 +88,17 @@ class MedicationCard extends StatelessWidget {
             if (medication.frequency != null)
               Row(
                 children: [
-                  Icon(Icons.repeat, size: 16, color: Colors.grey[600]),
+                  Icon(
+                    Icons.repeat, 
+                    size: 16, 
+                    color: Theme.of(context).textTheme.bodySmall?.color,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     'Tần suất: ${medication.frequency}',
-                    style: TextStyle(color: Colors.grey[700]),
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodySmall?.color,
+                    ),
                   ),
                 ],
               ),
@@ -93,11 +107,17 @@ class MedicationCard extends StatelessWidget {
             if (medication.startDate != null)
               Row(
                 children: [
-                  Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
+                  Icon(
+                    Icons.calendar_today, 
+                    size: 16, 
+                    color: Theme.of(context).textTheme.bodySmall?.color,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     'Bắt đầu: ${DateFormatter.formatDate(medication.startDate)}',
-                    style: TextStyle(color: Colors.grey[700]),
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodySmall?.color,
+                    ),
                   ),
                 ],
               ),
@@ -106,11 +126,17 @@ class MedicationCard extends StatelessWidget {
             if (medication.endDate != null)
               Row(
                 children: [
-                  Icon(Icons.event, size: 16, color: Colors.grey[600]),
+                  Icon(
+                    Icons.event, 
+                    size: 16, 
+                    color: Theme.of(context).textTheme.bodySmall?.color,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     'Kết thúc: ${DateFormatter.formatDate(medication.endDate)}',
-                    style: TextStyle(color: Colors.grey[700]),
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodySmall?.color,
+                    ),
                   ),
                 ],
               ),
@@ -120,19 +146,29 @@ class MedicationCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.blue[50],
+                  color: isDark 
+                      ? AppColors.primary.withOpacity(0.2)
+                      : Colors.blue[50],
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.info, size: 16, color: Colors.blue[800]),
+                    Icon(
+                      Icons.info, 
+                      size: 16, 
+                      color: isDark 
+                          ? AppColors.primary.withOpacity(0.9)
+                          : Colors.blue[800],
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         medication.instructions!,
                         style: TextStyle(
-                          color: Colors.blue[900],
+                          color: isDark 
+                              ? AppColors.primary.withOpacity(0.9)
+                              : Colors.blue[900],
                           fontSize: 12,
                         ),
                       ),
@@ -146,12 +182,12 @@ class MedicationCard extends StatelessWidget {
               children: [
                 IconButton(
                   onPressed: onEdit,
-                  icon: const Icon(Icons.edit, color: Colors.blue),
+                  icon: Icon(Icons.edit, color: AppColors.primary),
                   tooltip: 'Chỉnh sửa',
                 ),
                 IconButton(
                   onPressed: onDelete,
-                  icon: const Icon(Icons.delete, color: Colors.red),
+                  icon: Icon(Icons.delete, color: AppColors.healthDanger),
                   tooltip: 'Xóa',
                 ),
               ],

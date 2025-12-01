@@ -117,8 +117,12 @@ class _AddMedicationModalState extends State<AddMedicationModal> {
       }
 
       if (!mounted) return;
+      // Close modal first, then call onSuccess to ensure screen rebuilds
       Navigator.pop(context);
-      widget.onSuccess();
+      // Use post-frame callback to ensure modal is fully closed before reloading
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.onSuccess();
+      });
     } on TokenExpiredException {
       if (!mounted) return;
       _navigateToLogin();

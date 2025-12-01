@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:typed_data';
 import '../../api/api_client.dart';
 import '../../api/user_service.dart';
@@ -177,7 +178,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final settingValue = value.toString();
 
     try {
+      // Lưu vào backend
       await _userService.updateSetting(settingKey, settingValue);
+      
+      // Lưu vào SharedPreferences để ReminderService có thể đọc ngay
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(settingKey, settingValue);
+      
+      // Update AppSettingsProvider if it's a display setting
+      if (category == 'display') {
+        final settingsProvider = AppSettingsProvider();
+        switch (key) {
+          case 'theme':
+            await settingsProvider.setTheme(settingValue);
+            break;
+          case 'fontSize':
+            await settingsProvider.setFontSize(settingValue);
+            break;
+          case 'language':
+            await settingsProvider.setLanguage(settingValue);
+            break;
+        }
+      }
       
       // Nếu là notification settings, cập nhật notification service
       if (category == 'notifications' && key == 'push') {
@@ -188,8 +210,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         }
       }
       
-      // Nếu là reminder settings, sync lại reminders
+      // Nếu là reminder settings, sync lại reminders ngay lập tức
       if (category == 'reminders') {
+        // Force sync để áp dụng setting mới ngay lập tức
         await ReminderService().forceSync();
       }
       
@@ -424,13 +447,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Cài đặt')),
+        appBar: AppBar(
+          title: const Text('Cài đặt'),
+          backgroundColor: Colors.blue,
+          foregroundColor: Colors.white,
+        ),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Cài đặt hệ thống')),
+      appBar: AppBar(
+        title: const Text('Cài đặt hệ thống'),
+        backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
+      ),
       body: RefreshIndicator(
         onRefresh: _loadAll,
         child: ListView(

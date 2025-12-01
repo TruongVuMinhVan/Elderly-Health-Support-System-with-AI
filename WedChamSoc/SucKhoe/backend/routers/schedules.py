@@ -12,7 +12,7 @@ import logging
 
 from database import get_database
 from auth_simple import get_current_user
-from models.user import User
+from models.user import User, UserSetting
 from models.medication import Schedule, Reminder, ScheduleTypeEnum, ReminderTypeEnum
 
 # Logging setup
@@ -132,8 +132,21 @@ async def create_schedule(
         db.commit()
         db.refresh(schedule)
         
-        # Create automatic reminder (30 minutes before)
-        reminder_datetime = schedule_data.scheduled_datetime - timedelta(minutes=30)
+        # Get user's advance minutes setting (default: 30 minutes)
+        advance_minutes = 30
+        user_setting = db.query(UserSetting).filter(
+            UserSetting.user_id == user.id,
+            UserSetting.setting_key == 'reminders.advanceMinutes'
+        ).first()
+        
+        if user_setting and user_setting.setting_value:
+            try:
+                advance_minutes = int(user_setting.setting_value)
+            except (ValueError, TypeError):
+                advance_minutes = 30  # Default if invalid value
+        
+        # Create automatic reminder using user's advance minutes setting
+        reminder_datetime = schedule_data.scheduled_datetime - timedelta(minutes=advance_minutes)
         if reminder_datetime > datetime.now():
             reminder = Reminder(
                 user_id=user.id,
@@ -145,6 +158,7 @@ async def create_schedule(
             )
             db.add(reminder)
             db.commit()
+            logger.info(f"Reminder created for schedule {schedule.id} with {advance_minutes} minutes advance")
         
         logger.info(f"Schedule created: {schedule.id} for user {user.id}")
         

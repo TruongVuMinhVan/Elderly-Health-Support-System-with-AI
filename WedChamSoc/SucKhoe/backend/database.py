@@ -41,12 +41,18 @@ try:
     else:
         engine = create_engine(
             DATABASE_URL,
-            pool_size=int(config('DB_POOL_SIZE', default=5)),
-            max_overflow=int(config('DB_MAX_OVERFLOW', default=10)),
-            pool_pre_ping=True,
-            pool_recycle=300,
-            pool_timeout=30,
-            echo=debug_mode
+            pool_size=int(config('DB_POOL_SIZE', default=10)),  # Tăng từ 5 lên 10
+            max_overflow=int(config('DB_MAX_OVERFLOW', default=20)),  # Tăng từ 10 lên 20
+            pool_pre_ping=True,  # Kiểm tra connection trước khi dùng
+            pool_recycle=3600,  # Tăng từ 300 lên 3600 (1 giờ) để giảm overhead
+            pool_timeout=60,  # Tăng từ 30 lên 60 giây
+            echo=debug_mode,
+            # Tối ưu connection args cho MySQL
+            connect_args={
+                "connect_timeout": 10,
+                "read_timeout": 30,
+                "write_timeout": 30,
+            } if 'mysql' in DATABASE_URL.lower() else {}
         )
     logger.info(f"Database engine created successfully using {DATABASE_URL.split('://')[0]}")
 except Exception as e:
@@ -81,7 +87,8 @@ def get_database():
         db.rollback()
         raise
     finally:
-        # Only close the session, don't rollback unless there was an error
+        # Always close the session to return connection to pool immediately
+        # This prevents connection pool exhaustion
         db.close()
 
 def init_database():

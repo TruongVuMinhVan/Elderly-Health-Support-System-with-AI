@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../api/health_service.dart';
+import '../../styles/theme.dart';
 
 class AddHealthRecordModal extends StatefulWidget {
   final String? selectedType;
@@ -31,6 +32,8 @@ class _AddHealthRecordModalState extends State<AddHealthRecordModal> {
   DateTime _recordedAt = DateTime.now();
   bool _isSubmitting = false;
   String? _error;
+
+  bool get isDark => Theme.of(context).brightness == Brightness.dark;
 
   final _healthTypes = const [
     {
@@ -143,9 +146,13 @@ class _AddHealthRecordModalState extends State<AddHealthRecordModal> {
       }
 
       await widget.healthService.createRecord(submitData);
-      widget.onSuccess();
       if (!mounted) return;
+      // Close modal first, then call onSuccess to ensure screen rebuilds
       Navigator.pop(context);
+      // Use post-frame callback to ensure modal is fully closed before reloading
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.onSuccess();
+      });
     } catch (e) {
       setState(() {
         _error = 'Có lỗi xảy ra: ${e.toString()}';
@@ -239,6 +246,8 @@ class _AddHealthRecordModalState extends State<AddHealthRecordModal> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Dialog(
       child: SingleChildScrollView(
         child: Padding(
@@ -252,13 +261,19 @@ class _AddHealthRecordModalState extends State<AddHealthRecordModal> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Ghi nhận sức khỏe mới',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    Flexible(
+                      child: const Text(
+                        'Ghi nhận sức khỏe mới',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     IconButton(
                       icon: const Icon(Icons.close),
                       onPressed: () => Navigator.pop(context),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
                     ),
                   ],
                 ),
@@ -269,13 +284,24 @@ class _AddHealthRecordModalState extends State<AddHealthRecordModal> {
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.red.shade50,
+                        color: isDark 
+                            ? AppColors.healthDanger.withOpacity(0.2)
+                            : Colors.red.shade50,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.red.shade200),
+                        border: Border.all(
+                          color: isDark 
+                              ? AppColors.healthDanger.withOpacity(0.5)
+                              : Colors.red.shade200,
+                        ),
                       ),
                       child: Text(
                         _error!,
-                        style: TextStyle(color: Colors.red.shade800, fontSize: 14),
+                        style: TextStyle(
+                          color: isDark 
+                              ? AppColors.healthDanger.withOpacity(0.9)
+                              : Colors.red.shade800, 
+                          fontSize: 14,
+                        ),
                       ),
                     ),
                   ),

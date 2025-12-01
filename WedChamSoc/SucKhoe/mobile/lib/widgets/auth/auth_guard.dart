@@ -4,6 +4,7 @@ import '../../screens/auth/login_screen.dart';
 import '../../api/api_client.dart';
 import '../../api/user_service.dart';
 import '../../services/reminder_service.dart';
+import '../../providers/app_settings_provider.dart';
 
 class AuthGuard extends StatefulWidget {
   final Widget child;
@@ -36,16 +37,21 @@ class _AuthGuardState extends State<AuthGuard> {
         // Verify token with backend by making a simple API call
         try {
           await UserService(ApiClient()).getCurrentUser();
-          // Token is valid
-          // Initialize reminder service để sync notifications
-          await ReminderService().initialize();
-          
+          // Token is valid - set authenticated immediately
           if (mounted) {
             setState(() {
               _isAuthenticated = true;
               _isChecking = false;
             });
           }
+          
+          // Initialize services in background (non-blocking) for faster auth check
+          ReminderService().initialize().catchError((e) {
+            // Silently handle errors - reminders will sync later
+          });
+          AppSettingsProvider().reloadFromBackend().catchError((e) {
+            // Silently handle errors - settings will use defaults
+          });
         } on TokenExpiredException {
           // Token expired
           if (mounted) {
@@ -87,9 +93,12 @@ class _AuthGuardState extends State<AuthGuard> {
   }
 
   void _redirectToLogin([String? message]) {
-    Navigator.pushAndRemoveUntil(
+    // Clear user settings when redirecting to login
+    AppSettingsProvider().clearUserSettings();
+    // Use named route to ensure StaticThemeWrapper is applied
+    Navigator.pushNamedAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      '/login',
       (route) => false,
     );
     if (mounted && message != null) {

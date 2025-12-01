@@ -48,13 +48,15 @@ class TopPrediction(BaseModel):
 
 class PredictionResponse(BaseModel):
     id: int
-    user_id: int
-    image_path: str
+    user_id: Optional[int] = None  # Optional for quick scan
+    image_path: Optional[str] = None  # Optional for quick scan
     predicted_disease: Optional[SkinDiseaseResponse]  # Full disease info from database
     predicted_disease_name: Optional[str] = None  # Original name from model prediction
     confidence: Optional[float]
-    created_at: str
+    created_at: Optional[str] = None  # Optional for quick scan
     top_predictions: Optional[List[TopPrediction]] = None
+    severity: Optional[str] = None  # For quick scan
+    requires_login: Optional[bool] = False  # Flag for quick scan
 
 class PredictionRequest(BaseModel):
 
@@ -169,6 +171,150 @@ async def get_disease(
         )
     return disease.to_dict()
 
+@router.post("/quick-scan", response_model=PredictionResponse)
+async def quick_scan(
+    image: UploadFile = File(...),
+    db: Session = Depends(get_database)
+):
+    """
+    Quick Scan - Chẩn đoán nhanh KHÔNG CẦN ĐĂNG NHẬP
+    
+    - Người dùng chụp/tải ảnh lên
+    - AI phân tích ngay lập tức
+    - Hiển thị kết quả: tên bệnh, mức độ nghiêm trọng, gợi ý
+    - KHÔNG lưu ảnh hoặc kết quả vào database
+    - Có nút "Lưu kết quả" → yêu cầu đăng nhập
+    """
+    try:
+        import tempfile
+        import os
+        
+        # Validate file
+        if not image.filename:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No file provided"
+            )
+        
+        # Save to temporary file (will be deleted after processing)
+        temp_file_path = None
+        try:
+            # Create temp directory if not exists
+            temp_dir = Path(tempfile.gettempdir()) / "quick_scan"
+            temp_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Create temp file
+            file_ext = Path(image.filename).suffix
+            temp_file = tempfile.NamedTemporaryFile(
+                delete=False,
+                suffix=file_ext,
+                dir=str(temp_dir)
+            )
+            temp_file_path = Path(temp_file.name)
+            
+            # Write uploaded file to temp
+            content = await image.read()
+            temp_file.write(content)
+            temp_file.close()
+            
+            # Load predictor
+            try:
+                predictor = get_predictor(model_name="resnet50", config_name="from_dataset")
+            except FileNotFoundError as e:
+                logger.error(f"Model not found: {e}")
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="AI model not available. Please ensure model is trained."
+                )
+            except Exception as e:
+                logger.error(f"Error loading model: {e}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Failed to load AI model: {str(e)}"
+                )
+            
+            # Perform prediction
+            try:
+                prediction_result = predictor.predict(
+                    temp_file_path, 
+                    top_k=3, 
+                    confidence_threshold=0.5
+                )
+            except Exception as e:
+                logger.error(f"Error during prediction: {e}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Prediction failed: {str(e)}"
+                )
+            
+            # Get prediction details
+            predicted_disease_name = prediction_result["predicted_disease"]
+            confidence = prediction_result["confidence"]
+            
+            # Match disease in database
+            disease = match_disease_name(db, predicted_disease_name)
+            predicted_disease = disease.to_dict() if disease else None
+            
+            # Get severity
+            severity = None
+            if disease and disease.severity:
+                severity = disease.severity.value if hasattr(disease.severity, 'value') else str(disease.severity)
+            else:
+                # Default severity based on disease type
+                high_severity_diseases = ["melanoma", "basal_cell_carcinoma", "squamous_cell_carcinoma"]
+                if any(d in predicted_disease_name.lower() for d in high_severity_diseases):
+                    severity = "severe" if confidence > 0.7 else "moderate"
+                else:
+                    severity = "mild"
+            
+            # Process top predictions
+            top_predictions = []
+            if "top_predictions" in prediction_result:
+                for rank, top_pred in enumerate(prediction_result["top_predictions"], 1):
+                    top_disease_name = top_pred["disease"]
+                    top_confidence = top_pred["confidence"]
+                    top_disease = match_disease_name(db, top_disease_name)
+                    
+                    top_predictions.append({
+                        "disease_name": top_disease_name,
+                        "disease": top_disease.to_dict() if top_disease else None,
+                        "confidence": float(top_confidence),
+                        "rank": rank
+                    })
+            
+            logger.info(f"✅ Quick scan completed: {predicted_disease_name} (confidence: {confidence:.2%})")
+            
+            # Return response (similar to PredictionResponse but without saving to DB)
+            return {
+                "id": 0,  # No ID since not saved
+                "user_id": None,  # No user since no login
+                "image_path": None,  # Not saved
+                "predicted_disease": predicted_disease,
+                "predicted_disease_name": predicted_disease_name,
+                "confidence": float(confidence),
+                "created_at": None,
+                "top_predictions": top_predictions,
+                "severity": severity,
+                "requires_login": True  # Flag to show "Save result" button
+            }
+            
+        finally:
+            # Clean up temp file
+            if temp_file_path and temp_file_path.exists():
+                try:
+                    os.unlink(temp_file_path)
+                except Exception as e:
+                    logger.warning(f"Failed to delete temp file {temp_file_path}: {e}")
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in quick scan: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Quick scan failed: {str(e)}"
+        )
+
 @router.post("/predict", response_model=PredictionResponse)
 async def predict_skin_disease(
     image: UploadFile = File(...),
@@ -181,9 +327,9 @@ async def predict_skin_disease(
         image_path = save_uploaded_file(image, current_user["id"])
         full_image_path = Path(image_path)
         
-        # Load predictor (uses 10classes config by default)
+        # Load predictor (uses from_dataset config to match quick-scan)
         try:
-            predictor = get_predictor(model_name="resnet50", config_name="10classes")
+            predictor = get_predictor(model_name="resnet50", config_name="from_dataset")
         except FileNotFoundError as e:
             logger.error(f"Model not found: {e}")
             raise HTTPException(
@@ -377,9 +523,9 @@ async def predict_skin_disease_test(
         image_path = save_uploaded_file(image, test_user_id)
         full_image_path = Path(image_path)
         
-        # Load predictor
+        # Load predictor (uses from_dataset config to match quick-scan)
         try:
-            predictor = get_predictor(model_name="resnet50", config_name="10classes")
+            predictor = get_predictor(model_name="resnet50", config_name="from_dataset")
         except FileNotFoundError as e:
             logger.error(f"Model not found: {e}")
             raise HTTPException(

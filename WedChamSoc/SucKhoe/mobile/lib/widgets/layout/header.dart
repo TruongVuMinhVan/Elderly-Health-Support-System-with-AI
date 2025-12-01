@@ -16,10 +16,12 @@ class Header extends StatelessWidget implements PreferredSizeWidget {
     
     return AppBar(
       elevation: 1,
-      leading: IconButton(
-        icon: Icon(Icons.menu, color: Theme.of(context).iconTheme.color),
-        onPressed: onMenuPressed ?? () => Scaffold.of(context).openDrawer(),
-      ),
+      leading: onMenuPressed != null
+          ? IconButton(
+              icon: Icon(Icons.menu, color: Theme.of(context).iconTheme.color),
+              onPressed: onMenuPressed,
+            )
+          : null,
       title: Row(
         children: [
           Icon(Icons.favorite, color: Theme.of(context).primaryColor),

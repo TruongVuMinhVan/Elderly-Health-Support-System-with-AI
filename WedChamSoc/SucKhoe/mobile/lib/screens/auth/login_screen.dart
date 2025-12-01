@@ -5,6 +5,8 @@ import '../../widgets/auth/login_form.dart';
 import '../../widgets/auth/security_info_card.dart';
 import '../../widgets/auth/elderly_friendly_card.dart';
 import '../../widgets/auth/two_factor_dialog.dart';
+import '../../providers/app_settings_provider.dart';
+import '../../services/reminder_service.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -41,11 +43,27 @@ class _LoginScreenState extends State<LoginScreen> {
       final auth = AuthService(api);
       await auth.verifyEmail2FA(twoFa.tempToken, _emailCtrl.text.trim(), result);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đăng nhập thành công')),
-      );
-      if (!mounted) return;
+      
+      // Navigate immediately for faster login experience
       Navigator.pushNamedAndRemoveUntil(context, '/dashboard', (route) => false);
+      
+      // Load settings and initialize services in background (non-blocking)
+      final settingsProvider = AppSettingsProvider();
+      settingsProvider.reloadFromBackend().catchError((e) {
+        // Silently handle errors - settings will use defaults
+      });
+      
+      // Initialize reminder service in background
+      ReminderService().initialize().catchError((e) {
+        // Silently handle errors - reminders will sync later
+      });
+      
+      // Show success message after navigation
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Đăng nhập thành công')),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -68,11 +86,27 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đăng nhập thành công')),
-      );
-      if (!mounted) return;
+      
+      // Navigate immediately for faster login experience
       Navigator.pushNamedAndRemoveUntil(context, '/dashboard', (route) => false);
+      
+      // Load settings and initialize services in background (non-blocking)
+      final settingsProvider = AppSettingsProvider();
+      settingsProvider.reloadFromBackend().catchError((e) {
+        // Silently handle errors - settings will use defaults
+      });
+      
+      // Initialize reminder service in background
+      ReminderService().initialize().catchError((e) {
+        // Silently handle errors - reminders will sync later
+      });
+      
+      // Show success message after navigation
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Đăng nhập thành công')),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

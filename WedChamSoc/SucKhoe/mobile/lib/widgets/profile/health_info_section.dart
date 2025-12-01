@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../styles/theme.dart';
 
 /// Widget for health information section in profile
 class HealthInfoSection extends StatelessWidget {
@@ -45,7 +46,7 @@ class HealthInfoSection extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.favorite, color: Colors.red),
+                  Icon(Icons.favorite, color: AppColors.healthDanger),
                   const SizedBox(width: 8),
                   const Text(
                     'Thông tin sức khỏe',
@@ -56,7 +57,7 @@ class HealthInfoSection extends StatelessWidget {
                   ),
                   if (showSuccess) ...[
                     const SizedBox(width: 8),
-                    const Icon(Icons.check_circle, color: Colors.green, size: 20),
+                    Icon(Icons.check_circle, color: AppColors.healthNormal, size: 20),
                   ],
                 ],
               ),
@@ -133,7 +134,7 @@ class HealthInfoSection extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: isLoading ? null : onSave,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
+                    backgroundColor: AppColors.healthDanger,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),

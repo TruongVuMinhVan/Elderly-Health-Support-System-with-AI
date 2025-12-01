@@ -97,9 +97,10 @@ class ApiClient {
     throw TokenExpiredException('Token has expired. Please login again.');
   }
 
-  Future<T> get<T>(String path, {Map<String, dynamic>? query}) async {
-    final response = await _client.get(_uri(path, query), headers: await _headers());
-    if (response.statusCode == 401) {
+  Future<T> get<T>(String path, {Map<String, dynamic>? query, bool requireAuth = true}) async {
+    final headers = requireAuth ? await _headers() : {'Content-Type': 'application/json'};
+    final response = await _client.get(_uri(path, query), headers: headers);
+    if (response.statusCode == 401 && requireAuth) {
       await _handleUnauthorized();
     }
     if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -108,10 +109,11 @@ class ApiClient {
     throw _makeHttpException(response);
   }
 
-  Future<T> post<T>(String path, {Object? body, Map<String, dynamic>? query}) async {
+  Future<T> post<T>(String path, {Object? body, Map<String, dynamic>? query, bool requireAuth = true}) async {
+    final headers = requireAuth ? await _headers() : {'Content-Type': 'application/json'};
     final response = await _client.post(
       _uri(path, query),
-      headers: await _headers(),
+      headers: headers,
       body: body == null ? null : json.encode(body),
     );
     // Only treat 401 as token expired if we have a token (authenticated request)
@@ -119,7 +121,7 @@ class ApiClient {
     if (response.statusCode == 401) {
       final hasToken = await _getToken() != null;
       final isAuthEndpoint = path.contains('/auth/login') || path.contains('/auth/register');
-      if (hasToken && !isAuthEndpoint) {
+      if (hasToken && !isAuthEndpoint && requireAuth) {
         await _handleUnauthorized();
       }
     }
@@ -139,13 +141,14 @@ class ApiClient {
     throw _makeHttpException(response);
   }
 
-  Future<T> put<T>(String path, {Object? body, Map<String, dynamic>? query}) async {
+  Future<T> put<T>(String path, {Object? body, Map<String, dynamic>? query, bool requireAuth = true}) async {
+    final headers = requireAuth ? await _headers() : {'Content-Type': 'application/json'};
     final response = await _client.put(
       _uri(path, query),
-      headers: await _headers(),
+      headers: headers,
       body: body == null ? null : json.encode(body),
     );
-    if (response.statusCode == 401) {
+    if (response.statusCode == 401 && requireAuth) {
       await _handleUnauthorized();
     }
     if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -154,13 +157,17 @@ class ApiClient {
     throw _makeHttpException(response);
   }
 
-  Future<void> delete(String path, {Map<String, dynamic>? query}) async {
-    final response = await _client.delete(_uri(path, query), headers: await _headers());
-    if (response.statusCode == 401) {
+  Future<T> delete<T>(String path, {Map<String, dynamic>? query, bool requireAuth = true}) async {
+    final headers = requireAuth ? await _headers() : {'Content-Type': 'application/json'};
+    final response = await _client.delete(_uri(path, query), headers: headers);
+    if (response.statusCode == 401 && requireAuth) {
       await _handleUnauthorized();
     }
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      return;
+      if (response.body.isEmpty) {
+        return null as T;
+      }
+      return _decodeJson<T>(response.body);
     }
     throw _makeHttpException(response);
   }

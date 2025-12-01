@@ -41,6 +41,14 @@ class HealthService {
     final data = await _api.get<Map<String, dynamic>>('/health/stats/$recordType');
     return data;
   }
+
+  /// Get all health stats in a single API call (optimized)
+  Future<Map<String, Map<String, dynamic>>> getAllStats() async {
+    final data = await _api.get<Map<String, dynamic>>('/health/stats/all');
+    return Map<String, Map<String, dynamic>>.from(
+      data.map((key, value) => MapEntry(key, Map<String, dynamic>.from(value))),
+    );
+  }
 }
 
 

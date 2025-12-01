@@ -27,8 +27,12 @@ if str(backend_dir) not in sys.path:
 from database import init_database, check_database_connection, health_check
 from auth_simple import auth_health_check
 
+# Import all models to ensure they are registered with SQLAlchemy before init_database()
+# This ensures all tables are created when init_database() is called
+from models import User, HealthProfile, HealthRecord, Medication, ChatSession, ChatMessage, SkinDisease, SkinDiseasePrediction, Doctor
+
 # Import routers
-from routers import auth, users, health, medications, schedules, chat, two_factor, email_2fa, email_verify_2fa, skin_disease
+from routers import auth, users, health, medications, schedules, chat, two_factor, email_2fa, email_verify_2fa, skin_disease, doctors
 
 # Logging configuration
 logging.basicConfig(
@@ -150,6 +154,7 @@ app.include_router(medications.router)
 app.include_router(schedules.router)
 app.include_router(chat.router)
 app.include_router(skin_disease.router)
+app.include_router(doctors.router)
 app.include_router(auth.router, prefix="/api/auth")
 app.include_router(two_factor.router, prefix="/api")
 app.include_router(email_2fa.router, prefix="/api")

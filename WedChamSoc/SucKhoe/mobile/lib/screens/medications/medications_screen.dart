@@ -22,10 +22,47 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
   String? _error;
   bool _showInactive = false;
 
+  DateTime? _lastLoadTime;
+  bool _isInitialLoad = true;
+  bool _forceRefresh = false;
+  static const _minRefreshInterval = Duration(seconds: 2);
+
   @override
   void initState() {
     super.initState();
     _loadMedications();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Skip auto-refresh on first load (initState already loads data)
+    if (_isInitialLoad) {
+      _isInitialLoad = false;
+      return;
+    }
+    
+    // Auto-refresh when returning to this screen (e.g., from another screen)
+    // Only refresh if enough time has passed since last load to avoid excessive reloading
+    // Or if force refresh is requested
+    if (_forceRefresh) {
+      _forceRefresh = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _loadMedications();
+        }
+      });
+    } else {
+      final now = DateTime.now();
+      if (_lastLoadTime == null || 
+          now.difference(_lastLoadTime!) > _minRefreshInterval) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _loadMedications();
+          }
+        });
+      }
+    }
   }
 
   Future<void> _loadMedications() async {
@@ -40,6 +77,7 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
       );
       setState(() {
         _medications = medications;
+        _lastLoadTime = DateTime.now();
       });
     } on TokenExpiredException {
       if (!mounted) return;
@@ -94,16 +132,26 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
     if (confirmed != true) return;
 
     try {
-      await _medicationsService.deleteMedication(id);
-      // Sync reminders sau khi xóa medication
-      await ReminderService().forceSync();
-      if (!mounted) return;
+      // Optimistic update: Remove from UI immediately
+      setState(() {
+        _medications.removeWhere((m) => m.id == id);
+      });
+      
+      // Show success message immediately
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('✅ Đã xóa thuốc thành công'),
           backgroundColor: Colors.green,
         ),
       );
+      
+      // Delete and sync in background
+      _lastLoadTime = null;
+      await Future.wait([
+        _medicationsService.deleteMedication(id),
+        ReminderService().forceSync(),
+      ]);
+      if (!mounted) return;
       _loadMedications();
     } on TokenExpiredException {
       if (!mounted) return;
@@ -119,19 +167,26 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
     }
   }
 
-  void _openAddModal({MedicationModel? medication}) {
-    showDialog(
+  Future<void> _openAddModal({MedicationModel? medication}) async {
+    await showDialog(
       context: context,
       builder: (context) => AddMedicationModal(
         medicationsService: _medicationsService,
-        onSuccess: () async {
-          // Sync reminders sau khi thêm/sửa medication
-          await ReminderService().forceSync();
-          _loadMedications();
+        onSuccess: () {
+          // This will be called after dialog closes
         },
         editingMedication: medication,
       ),
     );
+    
+    // Reload data after dialog closes (regardless of result)
+    // This ensures data is refreshed even if onSuccess wasn't called
+    if (mounted) {
+      // Reset last load time to force immediate refresh
+      _lastLoadTime = null;
+      await ReminderService().forceSync();
+      _loadMedications();
+    }
   }
 
   Color _getStatusColor(MedicationModel medication) {
@@ -189,6 +244,13 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
         title: const Text('Quản lý thuốc'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            // Navigate to dashboard
+            Navigator.pushReplacementNamed(context, '/dashboard');
+          },
+        ),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())

@@ -53,6 +53,18 @@ class ChatResponse(BaseModel):
     message: ChatMessageResponse
     session: ChatSessionResponse
 
+# Models for public chatbot consult (no login required)
+class ConsultMessage(BaseModel):
+    content: str
+    session_id: Optional[str] = None
+
+class ConsultResponse(BaseModel):
+    message: str
+    suggested_diseases: List[dict] = []
+    recommendation: str
+    should_see_doctor: bool = False
+    session_id: str
+
 class HealthAdviceService:
     """
     Service for generating health advice responses
@@ -434,3 +446,166 @@ async def send_message(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to send message"
         )
+
+# In-memory conversation storage for public consult (không lưu vào database)
+_public_conversations = {}
+
+def _extract_symptoms(user_message: str) -> List[str]:
+    """Extract symptoms from user message"""
+    symptom_keywords = {
+        "ngứa": "ngứa",
+        "đỏ": "đỏ da",
+        "sưng": "sưng",
+        "đau": "đau",
+        "nóng": "nóng rát",
+        "mụn": "mụn",
+        "vết thương": "vết thương",
+        "phát ban": "phát ban",
+        "bong tróc": "bong tróc da",
+        "mẩn đỏ": "mẩn đỏ"
+    }
+    
+    symptoms = []
+    user_lower = user_message.lower()
+    for keyword, symptom in symptom_keywords.items():
+        if keyword in user_lower:
+            symptoms.append(symptom)
+    
+    return symptoms
+
+def _suggest_diseases_from_symptoms(symptoms: List[str]) -> List[dict]:
+    """Suggest possible diseases based on symptoms"""
+    disease_symptoms_map = {
+        "eczema": ["ngứa", "đỏ", "bong tróc"],
+        "melanoma": ["đổi màu", "nốt ruồi", "bất thường"],
+        "basal_cell_carcinoma": ["vết thương", "không lành", "chảy máu"],
+        "dermatitis": ["ngứa", "đỏ", "phát ban"],
+        "psoriasis": ["bong tróc", "đỏ", "dày da"],
+        "healthy": []
+    }
+    
+    suggested = []
+    for disease, disease_symptoms in disease_symptoms_map.items():
+        matches = sum(1 for s in symptoms if any(ds in s.lower() for ds in disease_symptoms))
+        if matches > 0:
+            suggested.append({
+                "disease_name": disease,
+                "match_score": matches / len(disease_symptoms) if disease_symptoms else 0,
+                "matched_symptoms": [s for s in symptoms if any(ds in s.lower() for ds in disease_symptoms)]
+            })
+    
+    suggested.sort(key=lambda x: x["match_score"], reverse=True)
+    return suggested[:3]
+
+def _determine_should_see_doctor(symptoms: List[str], suggested_diseases: List[dict]) -> bool:
+    """Determine if user should see a doctor"""
+    urgent_symptoms = ["chảy máu", "đau nhiều", "nhiễm trùng", "sốt", "khó thở"]
+    
+    if any(urgent in " ".join(symptoms).lower() for urgent in urgent_symptoms):
+        return True
+    
+    high_risk_diseases = ["melanoma", "basal_cell_carcinoma", "squamous_cell_carcinoma"]
+    if any(d["disease_name"] in high_risk_diseases for d in suggested_diseases):
+        return True
+    
+    return False
+
+@router.post("/consult", response_model=ConsultResponse)
+async def chatbot_consult_public(
+    message: ConsultMessage
+):
+    """
+    Chatbot tư vấn sơ bộ - KHÔNG CẦN ĐĂNG NHẬP
+    
+    - Mô tả triệu chứng bằng text
+    - Chatbot hỏi thêm câu hỏi
+    - Gợi ý bệnh có thể
+    - Khuyến nghị có nên đi khám không
+    - KHÔNG lưu lịch sử chat vào database
+    """
+    try:
+        import uuid
+        from datetime import datetime
+        
+        # Generate conversation ID if not provided
+        if not message.session_id:
+            session_id = str(uuid.uuid4())
+        else:
+            session_id = message.session_id
+        
+        # Initialize conversation if new
+        if session_id not in _public_conversations:
+            _public_conversations[session_id] = {
+                "messages": [],
+                "symptoms": []
+            }
+        
+        conversation = _public_conversations[session_id]
+        
+        # Extract symptoms from message
+        symptoms = _extract_symptoms(message.content)
+        conversation["symptoms"].extend(symptoms)
+        conversation["symptoms"] = list(set(conversation["symptoms"]))  # Remove duplicates
+        
+        # Add user message to conversation
+        conversation["messages"].append({
+            "role": "user",
+            "content": message.content,
+            "timestamp": str(datetime.now())
+        })
+        
+        # Generate AI response with symptom context
+        user_context = {
+            "symptoms": conversation["symptoms"],
+            "message_count": len(conversation["messages"])
+        }
+        
+        ai_response = await HealthAdviceService.generate_response(
+            message.content,
+            user_context
+        )
+        
+        # Add AI response to conversation
+        conversation["messages"].append({
+            "role": "assistant",
+            "content": ai_response,
+            "timestamp": str(datetime.now())
+        })
+        
+        # Suggest diseases based on symptoms
+        suggested_diseases = _suggest_diseases_from_symptoms(conversation["symptoms"])
+        
+        # Determine if should see doctor
+        should_see_doctor = _determine_should_see_doctor(conversation["symptoms"], suggested_diseases)
+        
+        # Generate recommendation
+        if should_see_doctor:
+            recommendation = "⚠️ Dựa trên các triệu chứng bạn mô tả, chúng tôi khuyến nghị bạn nên đi khám bác sĩ da liễu để được chẩn đoán chính xác và điều trị kịp thời."
+        elif suggested_diseases:
+            recommendation = "💡 Các triệu chứng bạn mô tả có thể liên quan đến một số bệnh da liễu. Nên theo dõi và đi khám nếu tình trạng không cải thiện."
+        else:
+            recommendation = "✅ Hãy tiếp tục mô tả thêm về các triệu chứng để chúng tôi có thể tư vấn tốt hơn."
+        
+        logger.info(f"✅ Public chatbot consult completed for session {session_id}")
+        
+        return ConsultResponse(
+            message=ai_response,
+            suggested_diseases=suggested_diseases,
+            recommendation=recommendation,
+            should_see_doctor=should_see_doctor,
+            session_id=session_id
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in public chatbot consult: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Chatbot consult failed: {str(e)}"
+        )
+
+@router.delete("/consult/{session_id}")
+async def clear_public_conversation(session_id: str):
+    """Clear public conversation (privacy - user can clear their session)"""
+    if session_id in _public_conversations:
+        del _public_conversations[session_id]
+    return {"status": "cleared", "message": "Conversation cleared"}

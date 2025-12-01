@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../api/api_client.dart';
 import '../api/schedules_service.dart';
 import '../api/medications_service.dart';
+import '../api/user_service.dart';
 import '../models/schedule.dart';
 import '../models/medication.dart';
 import 'notification_service.dart';
@@ -62,23 +63,51 @@ class ReminderService {
       // Get active medications
       final medications = await medicationsService.getMedications();
 
-      // Get advance minutes setting (từ user settings hoặc default)
+      // Get advance minutes setting (từ SharedPreferences, backend, hoặc default)
+      int advanceMinutes = 30; // Default
       final advanceMinutesStr = prefs.getString('reminders.advanceMinutes');
-      final advanceMinutes = advanceMinutesStr != null 
-          ? int.tryParse(advanceMinutesStr) ?? 30
-          : 30;
+      
+      if (advanceMinutesStr != null) {
+        advanceMinutes = int.tryParse(advanceMinutesStr) ?? 30;
+      } else {
+        // Nếu không có trong SharedPreferences, thử load từ backend
+        try {
+          final apiClient = ApiClient();
+          final userService = UserService(apiClient);
+          final settings = await userService.getSettings();
+          
+          for (final setting in settings) {
+            if (setting is Map<String, dynamic>) {
+              final key = setting['setting_key'] as String?;
+              final value = setting['setting_value'] as String?;
+              if (key == 'reminders.advanceMinutes' && value != null) {
+                advanceMinutes = int.tryParse(value) ?? 30;
+                // Lưu vào SharedPreferences để lần sau không cần query backend
+                await prefs.setString('reminders.advanceMinutes', value);
+                break;
+              }
+            }
+          }
+        } catch (e) {
+          // Nếu không load được từ backend, dùng default
+        }
+      }
 
       // Cancel old notifications
       await _notificationService.cancelAllScheduleReminders();
       await _notificationService.cancelAllMedicationReminders();
 
       // Schedule notifications cho schedules
+      print('🔄 Syncing reminders with advanceMinutes: $advanceMinutes');
+      int scheduledCount = 0;
+      
       for (final schedule in schedules) {
         try {
           final scheduledTime = DateTime.parse(schedule.scheduledDatetime);
           
           // Chỉ schedule nếu chưa completed và trong tương lai
           if (!schedule.isCompleted && scheduledTime.isAfter(DateTime.now())) {
+            // scheduleAppointmentReminder will handle errors internally and retry with inexact mode
             await _notificationService.scheduleAppointmentReminder(
               scheduleId: schedule.id,
               title: schedule.title,
@@ -87,11 +116,20 @@ class ReminderService {
               doctorName: schedule.doctorName,
               advanceMinutes: advanceMinutes,
             );
+            scheduledCount++;
+          } else {
+            print('⏭️ Skipping schedule ${schedule.id}: isCompleted=${schedule.isCompleted}, scheduledTime=$scheduledTime (isAfterNow=${scheduledTime.isAfter(DateTime.now())})');
           }
         } catch (e) {
-          // Skip invalid schedules
+          // This catch should rarely be hit since scheduleAppointmentReminder handles errors internally
+          print('❌ Error scheduling reminder for schedule ${schedule.id}: $e');
+          // Continue with next schedule
         }
       }
+      
+      print('✅ Scheduled $scheduledCount reminders');
+      
+      print('✅ Scheduled $scheduledCount reminders');
 
       // Schedule notifications cho medications
       for (final medication in medications) {

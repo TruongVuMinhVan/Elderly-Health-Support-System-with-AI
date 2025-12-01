@@ -127,8 +127,8 @@ class TopPredictionModel {
 /// Prediction result model
 class PredictionResultModel {
   final int id;
-  final int userId;
-  final String imagePath;
+  final int? userId; // Optional for quick-scan
+  final String? imagePath; // Optional for quick-scan (may be null)
   final SkinDiseaseModel? predictedDisease;
   final String? predictedDiseaseName;
   final double? confidence;
@@ -137,8 +137,8 @@ class PredictionResultModel {
 
   const PredictionResultModel({
     required this.id,
-    required this.userId,
-    required this.imagePath,
+    this.userId,
+    this.imagePath,
     this.predictedDisease,
     this.predictedDiseaseName,
     this.confidence,
@@ -163,8 +163,8 @@ class PredictionResultModel {
 
     return PredictionResultModel(
       id: json['id'] as int? ?? 0,
-      userId: json['user_id'] as int? ?? 0,
-      imagePath: json['image_path'] as String? ?? '',
+      userId: json['user_id'] as int?,
+      imagePath: json['image_path'] as String?,
       predictedDisease: predictedDisease,
       predictedDiseaseName: json['predicted_disease_name'] as String?,
       confidence: (json['confidence'] as num?)?.toDouble(),

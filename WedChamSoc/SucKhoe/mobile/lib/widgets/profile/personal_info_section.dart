@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../styles/theme.dart';
 
 /// Widget for personal information section in profile
 class PersonalInfoSection extends StatelessWidget {
@@ -51,7 +52,7 @@ class PersonalInfoSection extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.person, color: Colors.blue),
+                  Icon(Icons.person, color: AppColors.primary),
                   const SizedBox(width: 8),
                   const Text(
                     'Thông tin cá nhân',
@@ -62,7 +63,7 @@ class PersonalInfoSection extends StatelessWidget {
                   ),
                   if (showSuccess) ...[
                     const SizedBox(width: 8),
-                    const Icon(Icons.check_circle, color: Colors.green, size: 20),
+                    Icon(Icons.check_circle, color: AppColors.healthNormal, size: 20),
                   ],
                 ],
               ),
@@ -167,7 +168,7 @@ class PersonalInfoSection extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: isLoading ? null : onSave,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),

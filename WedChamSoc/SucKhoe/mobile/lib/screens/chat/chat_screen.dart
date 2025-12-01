@@ -18,24 +18,68 @@ class _ChatScreenState extends State<ChatScreen> {
   final _chatService = ChatService(ApiClient());
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
+  final _focusNode = FocusNode();
 
   ChatSessionModel? _currentSession;
   List<ChatMessageModel> _messages = [];
   bool _isLoading = false;
   bool _isSending = false;
   String? _error;
+  bool _canSend = false; // Track if we can send message
 
   @override
   void initState() {
     super.initState();
+    _messageController.addListener(_onTextChanged);
     _initializeChat();
   }
 
   @override
   void dispose() {
+    _messageController.removeListener(_onTextChanged);
     _messageController.dispose();
     _scrollController.dispose();
+    _focusNode.dispose();
     super.dispose();
+  }
+
+  void _onTextChanged() {
+    final canSend = _messageController.text.trim().isNotEmpty && 
+                    !_isSending && 
+                    _currentSession != null;
+    if (_canSend != canSend) {
+      setState(() {
+        _canSend = canSend;
+      });
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Ensure session is initialized when returning to this screen
+    // This is important when using IndexedStack - screen stays in memory but session might be lost
+    if (_currentSession == null && !_isLoading) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _currentSession == null && !_isLoading) {
+          _initializeChat();
+        }
+      });
+    } else if (_currentSession != null) {
+      // Update _canSend state when returning to screen
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          final canSend = _messageController.text.trim().isNotEmpty && 
+                          !_isSending && 
+                          _currentSession != null;
+          if (_canSend != canSend) {
+            setState(() {
+              _canSend = canSend;
+            });
+          }
+        }
+      });
+    }
   }
 
   Future<void> _initializeChat() async {
@@ -59,6 +103,7 @@ class _ChatScreenState extends State<ChatScreen> {
       if (session != null && session.messages != null && session.messages!.isNotEmpty) {
         setState(() {
           _messages = session!.messages!;
+          _canSend = _messageController.text.trim().isNotEmpty && !_isSending;
         });
         _scrollToBottom();
       } else if (session != null) {
@@ -74,6 +119,7 @@ class _ChatScreenState extends State<ChatScreen> {
               timestamp: DateTime.now().toIso8601String(),
             ),
           ];
+          _canSend = _messageController.text.trim().isNotEmpty && !_isSending;
         });
       }
     } on TokenExpiredException {
@@ -96,6 +142,9 @@ class _ChatScreenState extends State<ChatScreen> {
     } finally {
       setState(() {
         _isLoading = false;
+        _canSend = _messageController.text.trim().isNotEmpty && 
+                   !_isSending && 
+                   _currentSession != null;
       });
     }
   }
@@ -117,6 +166,7 @@ class _ChatScreenState extends State<ChatScreen> {
       _messages = [..._messages, userMessage];
       _isSending = true;
       _error = null;
+      _canSend = false;
     });
 
     _messageController.clear();
@@ -160,6 +210,8 @@ class _ChatScreenState extends State<ChatScreen> {
     } finally {
       setState(() {
         _isSending = false;
+        _canSend = _messageController.text.trim().isNotEmpty && 
+                   _currentSession != null;
       });
     }
   }
@@ -195,7 +247,16 @@ class _ChatScreenState extends State<ChatScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Tư vấn AI sức khỏe'),
+        backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            // Navigate to dashboard
+            Navigator.pushReplacementNamed(context, '/dashboard');
+          },
+        ),
       ),
       body: Column(
         children: [
@@ -282,8 +343,12 @@ class _ChatScreenState extends State<ChatScreen> {
                   Expanded(
                     child: TextField(
                       controller: _messageController,
+                      focusNode: _focusNode,
+                      enabled: !_isSending && _currentSession != null,
                       decoration: InputDecoration(
-                        hintText: 'Nhập câu hỏi của bạn...',
+                        hintText: _currentSession == null 
+                            ? 'Đang khởi tạo...' 
+                            : 'Nhập câu hỏi của bạn...',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
                         ),
@@ -294,17 +359,21 @@ class _ChatScreenState extends State<ChatScreen> {
                       ),
                       maxLines: null,
                       textInputAction: TextInputAction.send,
-                      onSubmitted: (_) => _handleSendMessage(),
+                      onSubmitted: (_) {
+                        if (_canSend) {
+                          _handleSendMessage();
+                        }
+                      },
                     ),
                   ),
                   const SizedBox(width: 8),
                   Material(
-                    color: Theme.of(context).primaryColor,
+                    color: _canSend 
+                        ? Theme.of(context).primaryColor 
+                        : Colors.grey,
                     borderRadius: BorderRadius.circular(24),
                     child: InkWell(
-                      onTap: _isSending || _messageController.text.trim().isEmpty
-                          ? null
-                          : _handleSendMessage,
+                      onTap: _canSend ? _handleSendMessage : null,
                       borderRadius: BorderRadius.circular(24),
                       child: Container(
                         padding: const EdgeInsets.all(12),
@@ -318,9 +387,9 @@ class _ChatScreenState extends State<ChatScreen> {
                                       AlwaysStoppedAnimation<Color>(Colors.white),
                                 ),
                               )
-                            : const Icon(
+                            : Icon(
                                 Icons.send,
-                                color: Colors.white,
+                                color: _canSend ? Colors.white : Colors.grey.shade300,
                               ),
                       ),
                     ),

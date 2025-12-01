@@ -18,6 +18,7 @@ import '../../models/medication.dart';
 import '../../screens/settings/settings_screen.dart';
 import '../../screens/auth/login_screen.dart';
 import '../../screens/skin_disease/skin_disease_predict_screen.dart';
+import '../../providers/app_settings_provider.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -42,11 +43,37 @@ class _DashboardState extends State<Dashboard> {
   bool _isLoading = false;
   String? _error;
 
+  DateTime? _lastLoadTime;
+  bool _isInitialLoad = true;
+  static const _minRefreshInterval = Duration(seconds: 2);
+
   @override
   void initState() {
     super.initState();
     _loadUser();
     _loadDashboardData();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Skip auto-refresh on first load (initState already loads data)
+    if (_isInitialLoad) {
+      _isInitialLoad = false;
+      return;
+    }
+    
+    // Auto-refresh when returning to this screen (e.g., from another screen)
+    // Only refresh if enough time has passed since last load to avoid excessive reloading
+    final now = DateTime.now();
+    if (_lastLoadTime == null || 
+        now.difference(_lastLoadTime!) > _minRefreshInterval) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _loadDashboardData();
+        }
+      });
+    }
   }
 
   Future<void> _loadUser() async {
@@ -157,6 +184,7 @@ class _DashboardState extends State<Dashboard> {
       if (mounted) {
         setState(() {
           _isLoading = false;
+          _lastLoadTime = DateTime.now();
         });
       }
     }
@@ -178,10 +206,13 @@ class _DashboardState extends State<Dashboard> {
 
   Future<void> _logout() async {
     await AuthService(ApiClient()).logout();
+    // Clear user-specific settings when logging out and reset to defaults
+    await AppSettingsProvider().clearUserSettings();
     if (!mounted) return;
-    Navigator.pushAndRemoveUntil(
+    // Use named route to ensure StaticThemeWrapper is applied
+    Navigator.pushNamedAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      '/login',
       (route) => false,
     );
   }
@@ -205,13 +236,15 @@ class _DashboardState extends State<Dashboard> {
     final orientation = MediaQuery.of(context).orientation;
     final isLandscape = orientation == Orientation.landscape;
     
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text('Trang chủ'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
         elevation: 0,
-        automaticallyImplyLeading: false,
+        automaticallyImplyLeading: false, // Hide back button - handled by AuthenticatedLayoutWrapper
         actions: [
           IconButton(
             icon: const Icon(Icons.camera_alt),
@@ -238,11 +271,13 @@ class _DashboardState extends State<Dashboard> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.surface,
                           borderRadius: BorderRadius.circular(12),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
+                              color: isDark 
+                                  ? Colors.black.withOpacity(0.3)
+                                  : Colors.black.withOpacity(0.05),
                               blurRadius: 8,
                               offset: const Offset(0, 2),
                             )
@@ -253,7 +288,10 @@ class _DashboardState extends State<Dashboard> {
                             CircleAvatar(
                               radius: 18,
                               backgroundColor: AppColors.elderlyBorder,
-                              child: const Icon(Icons.person, color: Colors.white),
+                              child: Icon(
+                                Icons.person, 
+                                color: Theme.of(context).colorScheme.onPrimary,
+                              ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -262,9 +300,9 @@ class _DashboardState extends State<Dashboard> {
                                 children: [
                                   Text(
                                     _name,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontWeight: FontWeight.w700,
-                                      color: Colors.black87,
+                                      color: Theme.of(context).colorScheme.onSurface,
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -272,7 +310,9 @@ class _DashboardState extends State<Dashboard> {
                                   if (_email.isNotEmpty)
                                     Text(
                                       _email,
-                                      style: const TextStyle(color: Colors.black54),
+                                      style: TextStyle(
+                                        color: Theme.of(context).textTheme.bodySmall?.color,
+                                      ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -285,7 +325,10 @@ class _DashboardState extends State<Dashboard> {
                               tooltip: 'Cài đặt',
                             ),
                             IconButton(
-                              icon: const Icon(Icons.logout, color: Colors.grey),
+                              icon: Icon(
+                                Icons.logout, 
+                                color: Theme.of(context).textTheme.bodySmall?.color,
+                              ),
                               onPressed: _logout,
                               tooltip: 'Đăng xuất',
                             ),
@@ -317,7 +360,7 @@ class _DashboardState extends State<Dashboard> {
                         _SquareCard(
                           title: 'Lịch hẹn & nhắc nhở',
                           icon: Icons.calendar_today,
-                          color: Colors.blue,
+                          color: AppColors.primary,
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(builder: (_) => const SchedulesScreen()),
@@ -326,7 +369,7 @@ class _DashboardState extends State<Dashboard> {
                         _SquareCard(
                           title: 'Quản lý thuốc',
                           icon: Icons.medical_services,
-                          color: Colors.green,
+                          color: AppColors.healthNormal,
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(builder: (_) => const MedicationsScreen()),
@@ -370,19 +413,19 @@ class _DashboardState extends State<Dashboard> {
                         ),
                         _StatCard(
                           value: _activeMedicationsCount.toString(),
-                          label: 'Thuốc đang dùng',
+                          label: 'Thuốc sử dụng',
                           icon: Icons.medication,
-                          color: Colors.blue,
+                          color: AppColors.primary,
                         ),
                         _StatCard(
                           value: _upcomingSchedulesCount.toString(),
                           label: 'Lịch hẹn sắp tới',
                           icon: Icons.calendar_today,
-                          color: Colors.green,
+                          color: AppColors.healthNormal,
                         ),
                         _StatCard(
                           value: _weeklyReportsCount.toString(),
-                          label: 'Báo cáo tuần này',
+                          label: 'Báo cáo tuần',
                           icon: Icons.bar_chart,
                           color: Colors.purple,
                         ),
@@ -456,7 +499,7 @@ class _SquareCard extends StatelessWidget {
             Icon(
               icon,
               size: 48,
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.onPrimary,
             ),
             const SizedBox(height: 12),
             Padding(
@@ -464,8 +507,8 @@ class _SquareCard extends StatelessWidget {
               child: Text(
                 title,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onPrimary,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
@@ -572,9 +615,9 @@ class _ReminderCard extends StatelessWidget {
       case _ReminderType.medication:
         return Colors.orange;
       case _ReminderType.appointment:
-        return Colors.blue;
+        return AppColors.primary;
       case _ReminderType.health:
-        return Colors.red;
+        return AppColors.healthDanger;
     }
   }
 
@@ -633,7 +676,7 @@ class _ReminderCard extends StatelessWidget {
                       Icon(
                         Icons.access_time,
                         size: 14,
-                        color: Colors.grey[600],
+                        color: Theme.of(context).textTheme.bodySmall?.color,
                       ),
                       const SizedBox(width: 4),
                       Text(

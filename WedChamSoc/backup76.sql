@@ -31,15 +31,13 @@ CREATE TABLE `chat_messages` (
   KEY `ix_chat_messages_session_id` (`session_id`),
   KEY `ix_chat_messages_timestamp` (`timestamp`),
   CONSTRAINT `chat_messages_ibfk_1` FOREIGN KEY (`session_id`) REFERENCES `chat_sessions` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 /*Data for the table `chat_messages` */
 
 insert  into `chat_messages`(`id`,`session_id`,`message_type`,`content`,`timestamp`) values 
-(5,7,'user','toi bi dau da day','2025-11-05 20:50:20'),
-(6,7,'assistant','Chào bác A! Cháu là trợ lý ảo sức khỏe, rất vui được hỗ trợ bác ạ. Cháu hiểu là bác đang bị đau dạ dày. Đau dạ dày có thể gây khó chịu, nhưng bác đừng quá lo lắng. Cháu sẽ đưa ra một vài lời khuyên để bác tham khảo nhé. ⚠️ Tuy nhiên, những thông tin này chỉ mang tính chất tham khảo, bác nên đi khám bác sĩ để được chẩn đoán và điều trị chính xác nhất ạ. ?\n\n**1. Chăm sóc tại nhà khi bị đau dạ dày:**\n\n*   **Ăn uống điều độ:**\n    *   Chia nhỏ các bữa ăn trong ngày (5-6 bữa nhỏ) thay vì 3 bữa chính.\n    *   Ăn chậm, nhai kỹ.\n    *   Tránh ăn quá no hoặc để bụng quá đói.\n*   **Chọn thực phẩm phù hợp:**\n    *   Ưu tiên các món mềm, dễ tiêu hóa như cháo, súp.\n    *   Hạn chế đồ ăn cay nóng, nhiều dầu mỡ, đồ chua (chanh, dấm), cà phê, rượu bia, và các loại nước ngọt có gas. ?\n    *   Bác có thể thử ăn một chút bánh mì hoặc cơm nguội vì chúng có thể giúp trung hòa axit trong dạ dày.\n*   **Uống đủ nước:** Uống đủ 2-2.5 lít nước mỗi ngày, tốt nhất là nước ấm.\n*   **Nghỉ ngơi đầy đủ:** Ngủ đủ giấc (7-8 tiếng mỗi đêm) và tránh căng thẳng.\n*   **Tránh hút thuốc lá:** Thuốc lá có thể làm tăng axit trong dạ dày và làm chậm quá trình lành vết thương.\n*   **Chườm ấm bụng:** Bác có thể dùng túi chườm ấm hoặc khăn ấm để chườm lên vùng bụng bị đau.\n\n**2. Theo dõi các triệu chứng:**\n\n*   Bác nên theo dõi xem cơn đau có liên quan đến loại thức ăn nào không.\n*   Ghi lại tần suất, mức độ và thời gian đau để cung cấp thông tin cho bác sĩ khi đi khám.\n\n**3. Khi nào cần đến gặp bác sĩ?**\n\nBác nên đến gặp bác sĩ ngay nếu có các triệu chứng sau:\n\n*   Đau bụng dữ dội, đột ngột.\n*   Nôn ra máu hoặc đi ngoài phân đen.\n*   Sụt cân không rõ nguyên nhân.\n*   Khó nuốt.\n*   Cảm thấy mệt mỏi, chóng mặt.\n\n**4. Lời khuyên chung:**\n\n*   **Lối sống lành mạnh:** Tập thể dục nhẹ nhàng thường xuyên (đi bộ, yoga) ?‍♂️ sẽ giúp tăng cường sức khỏe tổng thể và giảm căng thẳng.\n*   **Uống thuốc theo chỉ định:** Nếu bác đã được bác sĩ kê đơn thuốc, hãy uống thuốc đúng liều lượng và thời gian quy định. ?\n*   **Khám sức khỏe định kỳ:** Việc khám sức khỏe định kỳ sẽ giúp phát hiện sớm các vấn đề sức khỏe và có biện pháp can thiệp kịp thời.\n\nCháu hy vọng những thông tin này hữu ích cho bác. Chúc bác mau khỏe ạ! ?','2025-11-05 20:50:27'),
-(7,7,'user','toi dau chan','2025-11-11 16:26:12'),
-(8,7,'assistant','Chào bác A! Cháu là trợ lý ảo sức khỏe, rất vui được trò chuyện với bác. Bác đang bị đau chân đúng không ạ? Cháu hiểu rằng đau chân có thể gây khó chịu và ảnh hưởng đến sinh hoạt hàng ngày của bác.\n\nDưới đây là một vài lời khuyên để bác tham khảo, tuy nhiên, bác hãy nhớ rằng, nếu cơn đau kéo dài hoặc trở nên nghiêm trọng hơn, bác nên đi khám bác sĩ để được chẩn đoán và điều trị phù hợp nhé! ?\n\n**1. Xác định nguyên nhân và mức độ đau:**\n\n*   Bác hãy nhớ lại xem mình bị đau chân do đâu: có thể do va đập, vận động quá sức hay do một bệnh lý nào đó.\n*   Đánh giá mức độ đau: đau âm ỉ, đau nhói, đau liên tục hay chỉ đau khi vận động.\n\n**2. Các biện pháp giảm đau tại nhà:**\n\n*   **Nghỉ ngơi:** Hạn chế đi lại và vận động mạnh để chân được nghỉ ngơi.\n*   **Chườm đá:** Chườm đá lên vùng chân bị đau khoảng 15-20 phút mỗi lần, vài lần một ngày. Đá giúp giảm sưng và đau.\n*   **Kê cao chân:** Khi nằm, bác hãy kê cao chân lên một chút để máu lưu thông tốt hơn và giảm sưng.\n*   **Sử dụng thuốc giảm đau không kê đơn:** Bác có thể sử dụng các loại thuốc giảm đau thông thường như paracetamol (acetaminophen) hoặc ibuprofen theo hướng dẫn sử dụng. ? **⚠️Lưu ý:** Nếu bác có các bệnh nền hoặc đang dùng các loại thuốc khác, hãy hỏi ý kiến bác sĩ trước khi dùng thuốc giảm đau nhé!\n*   **Xoa bóp nhẹ nhàng:** Xoa bóp nhẹ nhàng vùng chân bị đau có thể giúp giảm căng cơ và cải thiện lưu thông máu.\n\n**3. Lối sống lành mạnh hỗ trợ giảm đau:**\n\n*   **Ăn uống đủ chất:** Bác nên ăn uống đủ chất dinh dưỡng, đặc biệt là các loại thực phẩm giàu canxi và vitamin D để giúp xương chắc khỏe. ?\n*   **Tập thể dục nhẹ nhàng:** Các bài tập nhẹ nhàng như đi bộ hoặc đạp xe có thể giúp tăng cường sức mạnh cơ bắp và cải thiện khả năng vận động. ?‍♂️\n*   **Giữ cân nặng hợp lý:** Thừa cân có thể gây áp lực lên khớp chân và làm tăng nguy cơ đau chân.\n\n**4. Khi nào cần đi khám bác sĩ:**\n\n*   Cơn đau kéo dài hơn một tuần hoặc trở nên nghiêm trọng hơn.\n*   Chân bị sưng, đỏ, nóng hoặc có dấu hiệu nhiễm trùng.\n*   Bác bị sốt.\n*   Bác không thể đi lại được.\n\n**Lời khuyên cuối cùng:**\n\n*   Đừng ngần ngại đi khám bác sĩ nếu bác cảm thấy lo lắng về tình trạng đau chân của mình.\n*   Hãy tuân thủ theo hướng dẫn của bác sĩ về việc điều trị và chăm sóc sức khỏe.\n\n? Cháu hy vọng những lời khuyên này sẽ giúp bác cảm thấy dễ chịu hơn. Chúc bác mau khỏe!','2025-11-11 16:26:25');
+(19,10,'user','my head hurts','2025-12-01 15:02:08'),
+(20,10,'assistant','Chào bác abc ạ! Cháu là trợ lý ảo sức khỏe, rất vui được hỗ trợ bác. Cháu hiểu là bác đang bị đau đầu.\n\n? **Đau đầu có thể do nhiều nguyên nhân, nhưng cháu xin phép đưa ra một vài lời khuyên chung để bác tham khảo nhé:**\n\n1.  **Nghỉ ngơi hợp lý:**\n    *   Bác nên tìm một nơi yên tĩnh, thoáng mát để nghỉ ngơi.\n    *   Có thể chườm khăn mát lên trán hoặc gáy để giảm bớt khó chịu.\n2.  **Uống đủ nước:**\n    *   Đôi khi đau đầu là do cơ thể thiếu nước. Bác hãy uống một cốc nước ấm nhé.\n3.  **Massage nhẹ nhàng:**\n    *   Bác có thể xoa bóp nhẹ nhàng vùng thái dương, trán và gáy để giúp thư giãn.\n4.  **Tránh các yếu tố kích thích:**\n    *   Nếu bác nhạy cảm với ánh sáng, tiếng ồn, hoặc mùi hương mạnh, hãy cố gắng tránh chúng.\n5.  **Ăn uống đầy đủ:**\n    *   Đừng để bụng quá đói, vì hạ đường huyết cũng có thể gây đau đầu. Bác nên ăn nhẹ một chút gì đó nhé.\n\n⚠️ **Lưu ý quan trọng:**\n\n*   Nếu bác bị đau đầu dữ dội, đau đầu kèm theo các triệu chứng như sốt cao, cứng cổ, nhìn mờ, yếu tay chân, hoặc nói khó, thì đây có thể là dấu hiệu của một vấn đề nghiêm trọng hơn.\n*   **Trong trường hợp này, bác cần đến bệnh viện hoặc gọi 115 ngay lập tức!** ?\n\n**Lời khuyên chung về sức khỏe (dành cho mọi người):**\n\n*   ? **Chế độ ăn uống:** Bác nên ăn nhiều rau xanh, trái cây, và các loại ngũ cốc nguyên hạt. Hạn chế đồ ăn chế biến sẵn, đồ ngọt, và đồ ăn nhiều dầu mỡ.\n*   ?‍♂️ **Vận động thường xuyên:** Bác nên tập thể dục đều đặn, ít nhất 30 phút mỗi ngày. Đi bộ, tập dưỡng sinh, hoặc yoga là những lựa chọn tốt cho người cao tuổi.\n*   ? **Uống thuốc đúng giờ:** Nếu bác đang uống thuốc điều trị bệnh, hãy nhớ uống thuốc đúng giờ và theo đúng chỉ dẫn của bác sĩ.\n\nCháu xin nhắc lại là cháu không thể chẩn đoán bệnh cho bác được. **Nếu tình trạng đau đầu của bác không cải thiện hoặc trở nên nghiêm trọng hơn, bác nên đi khám bác sĩ để được chẩn đoán và điều trị kịp thời nhé.**\n\nChúc bác abc luôn khỏe mạnh và vui vẻ! ?','2025-12-01 15:02:15');
 
 /*Table structure for table `chat_sessions` */
 
@@ -57,12 +55,39 @@ CREATE TABLE `chat_sessions` (
   KEY `ix_chat_sessions_user_id` (`user_id`),
   KEY `ix_chat_sessions_id` (`id`),
   CONSTRAINT `chat_sessions_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 /*Data for the table `chat_sessions` */
 
 insert  into `chat_sessions`(`id`,`user_id`,`session_id`,`started_at`,`ended_at`,`is_active`) values 
-(7,11,'d0d73609-df4c-4c8d-a156-83a09c5217c8','2025-11-05 20:47:02',NULL,1);
+(10,14,'bb64c679-b76c-41d3-9e12-43a87f551eab','2025-12-01 14:56:46',NULL,1);
+
+/*Table structure for table `doctors` */
+
+DROP TABLE IF EXISTS `doctors`;
+
+CREATE TABLE `doctors` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `specialty` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `clinic_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `address` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `phone` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `email` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `website` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `latitude` decimal(10,8) DEFAULT NULL,
+  `longitude` decimal(11,8) DEFAULT NULL,
+  `rating` decimal(3,2) DEFAULT '0.00',
+  `review_count` int DEFAULT '0',
+  `price_range` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `opening_hours` text COLLATE utf8mb4_unicode_ci,
+  `is_active` tinyint(1) DEFAULT '1',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+/*Data for the table `doctors` */
 
 /*Table structure for table `health_profiles` */
 
@@ -163,12 +188,17 @@ CREATE TABLE `reminders` (
   KEY `ix_reminders_remind_datetime` (`remind_datetime`),
   CONSTRAINT `reminders_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   CONSTRAINT `reminders_ibfk_2` FOREIGN KEY (`schedule_id`) REFERENCES `schedules` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 /*Data for the table `reminders` */
 
 insert  into `reminders`(`id`,`user_id`,`schedule_id`,`reminder_type`,`title`,`message`,`remind_datetime`,`is_sent`,`is_read`,`created_at`) values 
-(2,11,NULL,'checkup','Nhắc nhở: kham benh','Bạn có kham benh vào lúc 12:00','2025-11-06 11:30:00',0,0,'2025-11-05 20:49:07');
+(6,14,NULL,'appointment','Nhắc nhở: abc','Bạn có abc vào lúc 15:57','2025-12-01 15:27:27',0,0,'2025-12-01 14:58:07'),
+(7,14,NULL,'appointment','Nhắc nhở: afc','Bạn có afc vào lúc 15:45','2025-12-01 15:30:00',0,0,'2025-12-01 15:27:31'),
+(8,14,NULL,'appointment','Nhắc nhở: ad','Bạn có ad vào lúc 16:15','2025-12-01 16:00:00',0,0,'2025-12-01 15:57:08'),
+(9,14,NULL,'appointment','Nhắc nhở: abvc','Bạn có abvc vào lúc 16:19','2025-12-01 16:04:00',0,0,'2025-12-01 16:02:34'),
+(10,14,NULL,'appointment','Nhắc nhở: dd','Bạn có dd vào lúc 17:25','2025-12-01 17:10:00',0,0,'2025-12-01 16:08:38'),
+(11,14,14,'appointment','Nhắc nhở: sdfsd','Bạn có sdfsd vào lúc 16:32','2025-12-01 16:17:00',0,0,'2025-12-01 16:16:56');
 
 /*Table structure for table `schedules` */
 
@@ -196,9 +226,12 @@ CREATE TABLE `schedules` (
   KEY `ix_schedules_user_id` (`user_id`),
   CONSTRAINT `schedules_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   CONSTRAINT `schedules_ibfk_2` FOREIGN KEY (`medication_id`) REFERENCES `medications` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 /*Data for the table `schedules` */
+
+insert  into `schedules`(`id`,`user_id`,`schedule_type`,`title`,`description`,`scheduled_datetime`,`location`,`doctor_name`,`medication_id`,`is_completed`,`is_recurring`,`recurrence_pattern`,`created_at`,`updated_at`) values 
+(14,14,'appointment','sdfsd',NULL,'2025-12-01 16:32:00',NULL,NULL,NULL,0,0,NULL,'2025-12-01 16:16:56','2025-12-01 16:16:56');
 
 /*Table structure for table `skin_disease_predictions` */
 
@@ -222,24 +255,13 @@ CREATE TABLE `skin_disease_predictions` (
   CONSTRAINT `skin_disease_predictions_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   CONSTRAINT `skin_disease_predictions_ibfk_2` FOREIGN KEY (`predicted_disease_id`) REFERENCES `skin_diseases` (`id`) ON DELETE SET NULL,
   CONSTRAINT `skin_disease_predictions_ibfk_3` FOREIGN KEY (`actual_disease_id`) REFERENCES `skin_diseases` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB AUTO_INCREMENT=41 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=46 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 /*Data for the table `skin_disease_predictions` */
 
 insert  into `skin_disease_predictions`(`id`,`user_id`,`image_path`,`predicted_disease_id`,`confidence`,`actual_disease_id`,`user_feedback`,`is_confirmed`,`created_at`) values 
-(28,11,'uploads/skin_disease/11_6f6035f8-ac4e-4153-8d2b-67e7fbe84822.jpg',92,0.9854,NULL,NULL,0,'2025-11-17 10:37:09'),
-(29,11,'uploads/skin_disease/11_290a6bc8-dc3c-4777-89c1-e6569a611702.jpg',92,0.9646,NULL,NULL,0,'2025-11-17 10:37:56'),
-(30,11,'uploads/skin_disease/11_7875d606-d466-4ab4-9dac-36547e94df51.jpg',92,0.9547,NULL,NULL,0,'2025-11-17 10:39:23'),
-(31,11,'uploads/skin_disease/11_5c53b7f5-9694-4043-b498-5be15aae2c67.jpg',61,0.3556,NULL,NULL,0,'2025-11-17 10:40:17'),
-(32,11,'uploads/skin_disease/11_d8ee777d-6efb-416f-9495-efc454e5b925.jpg',61,0.9975,NULL,NULL,0,'2025-11-17 10:41:17'),
-(33,11,'uploads/skin_disease/11_c69e5578-6b68-4955-81c7-bef3c78b4917.jpg',61,0.9993,NULL,NULL,0,'2025-11-17 10:41:37'),
-(34,11,'uploads/skin_disease/11_a22aa8f1-696f-43f3-91d3-2cabd064cd8c.jpg',93,0.9442,NULL,NULL,0,'2025-11-17 10:42:25'),
-(35,11,'uploads/skin_disease/11_e28bb748-4786-4999-ad33-949200499c01.jpg',61,0.9745,NULL,NULL,0,'2025-11-17 10:43:18'),
-(36,11,'uploads/skin_disease/11_34dfd6b3-2e47-46f2-ba03-347233394d55.jpg',94,0.9892,NULL,NULL,0,'2025-11-17 10:44:05'),
-(37,11,'uploads/skin_disease/11_7cc247e5-1022-4d07-9f85-87236191541e.jpg',97,0.9990,NULL,NULL,0,'2025-11-17 10:45:02'),
-(38,11,'uploads/skin_disease/11_f07fcdcb-6fc2-4283-bbae-365790fda525.jpg',97,0.9990,NULL,NULL,0,'2025-11-17 10:48:50'),
-(39,11,'uploads/skin_disease/11_d4e8e9d1-9d12-49a7-9689-d4af97ec088a.jpg',97,1.0000,NULL,NULL,0,'2025-11-18 17:26:50'),
-(40,11,'uploads/skin_disease/11_9cd4d3c0-ba40-4973-ba88-974893769d0a.jpg',97,0.7632,NULL,NULL,0,'2025-11-19 16:45:12');
+(44,14,'uploads/skin_disease/14_40ef8bf8-abdf-45af-a1a2-8652b948429c.jpg',97,0.8186,NULL,NULL,0,'2025-12-01 15:37:31'),
+(45,14,'uploads/skin_disease/14_1b85f66a-f768-4259-bb31-08ff63fb9f82.jpg',97,0.8186,NULL,NULL,0,'2025-12-01 15:55:43');
 
 /*Table structure for table `skin_diseases` */
 
@@ -267,6 +289,7 @@ CREATE TABLE `skin_diseases` (
 
 insert  into `skin_diseases`(`id`,`name`,`name_vi`,`description`,`symptoms`,`causes`,`treatment`,`prevention`,`severity`,`is_common`,`created_at`,`updated_at`) values 
 (17,'keratoacanthoma','u sừng dạng nón','U da mọc nhanh hình núi lửa với trung tâm chứa sừng, được xem là biến thể độ thấp của ung thư tế bào vảy, cần cắt bỏ sớm','[\"u nhỏ rất nhanh trong 4-6 tuần\", \"hình núi lửa với hố giữa\", \"trung tâm chứa keratin\", \"màu da hoặc hồng nhạt\", \"vùng da hở\"]','[\"tia UV mạn tính\", \"tuổi cao trên 50\", \"da sáng\", \"virus HPV\", \"chấn thương da\", \"hóa chất như tar\"]','[\"cắt bỏ hoàn toàn (phương pháp tốt nhất)\", \"phẫu thuật Mohs\", \"đông lạnh\", \"tiêm 5-fluorouracil trong u\", \"không nên chờ tự khỏi vì có thể là ung thư\"]','[\"chống nắng nghiêm ngặt\", \"tránh chấn thương da\", \"khám da thường xuyên\", \"điều trị sớm nếu phát hiện\"]','severe',0,'2025-11-07 19:54:45','2025-11-16 15:53:14'),
+(18,'eczema','chàm','Bệnh viêm da mãn tính gây ngứa, đỏ và khô da, thường tái phát theo chu kỳ. Còn gọi là viêm da cơ địa (atopic dermatitis), là bệnh da liễu phổ biến nhất ở trẻ em nhưng có thể kéo dài đến tuổi trưởng thành.','[\"da khô bong vảy\", \"ngứa dữ dội đặc biệt về đêm\", \"vùng da đỏ hoặc nâu xám\", \"vết sần nhỏ có thể chảy nước khi gãi\", \"da dày chai sạn do gãi lâu ngày\", \"da nứt nẻ nhạy cảm\", \"ở trẻ em thường xuất hiện ở mặt và đầu gối khuỷu tay\"]','[\"di truyền và yếu tố gia đình\", \"rối loạn hàng rào bảo vệ da\", \"hệ miễn dịch quá mẫn\", \"yếu tố môi trường (khô hanh, nóng ẩm)\", \"chất kích ứng (xà phòng, hóa chất)\", \"dị ứng thực phẩm hoặc phấn hoa\", \"stress và căng thẳng\"]','[\"kem dưỡng ẩm thường xuyên 2-3 lần/ngày\", \"corticosteroid bôi ngoài (theo đơn bác sĩ)\", \"thuốc ức chế calcineurin bôi (tacrolimus, pimecrolimus)\", \"thuốc kháng histamin giảm ngứa\", \"kháng sinh nếu nhiễm trùng thứ phát\", \"liệu pháp ánh sáng UVB\", \"thuốc sinh học (dupilumab) cho trường hợp nặng\"]','[\"dưỡng ẩm da đầy đủ mỗi ngày\", \"tắm nước ấm ngắn dưới 10 phút\", \"dùng sữa tắm không xà phòng pH trung tính\", \"tránh gãi ngứa\", \"mặc quần áo cotton thoáng mát\", \"tránh các yếu tố kích thích đã biết\", \"quản lý stress hiệu quả\", \"duy trì độ ẩm phòng 40-50%\"]','moderate',1,'2025-11-30 15:41:55','2025-11-30 15:41:55'),
 (61,'melanoma','u hắc tố ác tính','Ung thư da NGUY HIỂM NHẤT từ tế bào hắc tố, di căn nhanh, tỷ lệ tử vong cao nếu phát hiện muộn, cần phát hiện và điều trị SỚM','[\"nốt ruồi thay đổi nhanh\", \"bất đối xứng (Asymmetry)\", \"ranh giới lởm chởm (Border)\", \"nhiều màu sắc (Color)\", \"đường kính >6mm (Diameter)\", \"phát triển (Evolving)\"]','[\"tia UV tích lũy và cháy nắng nặng\", \"da sáng\", \"nhiều nốt ruồi\", \"tiền sử gia đình\", \"tuổi cao\", \"suy giảm miễn dịch\"]','[\"phẫu thuật cắt rộng\", \"sinh thiết hạch bạch huyết\", \"miễn dịch trị liệu (immunotherapy)\", \"thuốc nhắm trúng đích (targeted therapy)\", \"xạ trị\", \"hóa trị nếu di căn\"]','[\"QUAN TRỌNG: khám da toàn thân 3-6 tháng/lần\", \"tự kiểm tra da hàng tháng theo ABCDE\", \"chống nắng nghiêm ngặt\", \"không tắm nắng\", \"cắt bỏ nốt ruồi nghi ngờ sớm\"]','severe',0,'2025-11-08 15:29:50','2025-11-16 15:53:14'),
 (74,'dermatofibroma','u xơ da','U xơ lành tính thường gặp ở người trưởng thành và cao tuổi, cứng, màu nâu, đặc trưng lõm khi véo (dimple sign)','[\"nốt cứng màu nâu hoặc đỏ nâu\", \"lõm xuống khi véo hai bên\", \"không đau\", \"kích thước 0.5-1cm\", \"chủ yếu ở chân\"]','[\"nguyên nhân chưa rõ\", \"có thể sau vết côn trùng cắn\", \"chấn thương nhỏ\", \"di truyền\", \"phản ứng mô xơ của da\"]','[\"thường không cần điều trị\", \"cắt bỏ nếu ngứa hoặc thẩm mỹ\", \"đông lạnh giúp giảm kích thước\", \"tiêm corticoid trong u\", \"không tự biến mất\"]','[\"không có cách phòng ngừa cụ thể\", \"tránh chấn thương da\", \"theo dõi nếu thay đổi đột ngột\"]','mild',1,'2025-11-08 15:29:50','2025-11-16 15:53:14'),
 (92,'healthy','da khỏe mạnh','Da bình thường, khỏe mạnh không có bệnh lý, dùng làm baseline để so sánh và phân loại hình ảnh trong chẩn đoán AI','[\"màu da đều\", \"không có tổn thương\", \"không đỏ không sưng\", \"không ngứa không đau\", \"bề mặt da mịn tự nhiên\"]','[\"da khỏe mạnh tự nhiên\", \"chăm sóc da đúng cách\", \"chế độ ăn cân bằng\", \"uống đủ nước\", \"ngủ đủ giấc\", \"không tiếp xúc yếu tố gây hại\"]','[\"duy trì chế độ chăm sóc da\", \"làm sạch nhẹ nhàng\", \"dưỡng ẩm đầy đủ\", \"chống nắng hàng ngày\", \"ăn uống lành mạnh\"]','[\"kem chống nắng SPF 30+\", \"tránh hút thuốc và rượu\", \"ăn nhiều rau củ quả\", \"uống 2 lít nước/ngày\", \"ngủ 7-8 giờ/đêm\", \"khám da định kỳ\"]','mild',1,'2025-11-13 09:51:17','2025-11-16 15:53:14'),
@@ -289,18 +312,21 @@ CREATE TABLE `user_settings` (
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_user_setting` (`user_id`,`setting_key`),
   KEY `ix_user_settings_user_id` (`user_id`),
   KEY `ix_user_settings_id` (`id`),
+  KEY `idx_user_setting_key` (`user_id`,`setting_key`),
   CONSTRAINT `user_settings_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=46 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=55 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 /*Data for the table `user_settings` */
 
 insert  into `user_settings`(`id`,`user_id`,`setting_key`,`setting_value`,`created_at`,`updated_at`) values 
-(42,11,'display.fontSize','medium','2025-11-18 17:08:55','2025-11-19 18:54:56'),
-(43,11,'display.theme','dark','2025-11-18 17:09:01','2025-11-19 18:55:04'),
-(44,11,'preferred_2fa_method','totp','2025-11-19 18:29:33','2025-11-19 18:29:36'),
-(45,11,'display.language','vi','2025-11-19 18:37:08','2025-11-19 18:37:24');
+(50,14,'display.theme','light','2025-12-01 14:56:55','2025-12-01 15:22:42'),
+(51,14,'reminders.advanceMinutes','15','2025-12-01 14:57:09','2025-12-01 14:57:09'),
+(52,14,'display.fontSize','large','2025-12-01 15:05:12','2025-12-01 15:18:34'),
+(53,14,'notifications.push','true','2025-12-01 15:10:28','2025-12-01 15:10:28'),
+(54,14,'reminders.sound','true','2025-12-01 15:18:01','2025-12-01 15:18:02');
 
 /*Table structure for table `users` */
 
@@ -329,12 +355,12 @@ CREATE TABLE `users` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `ix_users_email` (`email`),
   KEY `ix_users_id` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 /*Data for the table `users` */
 
 insert  into `users`(`id`,`email`,`password_hash`,`phone`,`full_name`,`date_of_birth`,`gender`,`address`,`emergency_contact_name`,`emergency_contact_phone`,`created_at`,`updated_at`,`is_active`,`email_verified`,`two_factor_enabled`,`two_factor_secret`,`backup_codes_hashed`,`email_otp_enabled`,`preferred_2fa_method`) values 
-(11,'sieumc1990@gmail.com','$2b$12$ILbQX38AqaHa865.KEpgOONW3Uj.SsErodysQNX3k0ohCa0ue6OZ2','0338611716','TRUONG VAN A',NULL,'other',NULL,NULL,NULL,'2025-11-05 20:46:37','2025-11-05 20:46:37',1,1,0,NULL,NULL,0,'totp');
+(14,'sieumc1990@gmail.com','$2b$12$QJWgUgiq98n/V1ukHYiZHutt3M5fkmVfeEHbrE52S9OXXQIGrw8iS','0338611716','abc',NULL,'other',NULL,NULL,NULL,'2025-12-01 14:56:25','2025-12-01 14:56:25',1,1,0,NULL,NULL,0,'totp');
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
