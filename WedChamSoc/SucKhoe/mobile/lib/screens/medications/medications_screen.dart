@@ -5,6 +5,7 @@ import '../../models/medication.dart';
 import '../../widgets/medications/add_medication_modal.dart';
 import '../../widgets/medications/medication_card.dart';
 import '../../services/reminder_service.dart';
+import '../../styles/theme.dart';
 import '../auth/login_screen.dart';
 
 class MedicationsScreen extends StatefulWidget {
@@ -15,7 +16,12 @@ class MedicationsScreen extends StatefulWidget {
 }
 
 class _MedicationsScreenState extends State<MedicationsScreen> {
-  final _medicationsService = MedicationsService(ApiClient());
+  // Cache API client and service to avoid recreating on every rebuild
+  static ApiClient? _cachedApiClient;
+  static MedicationsService? _cachedMedicationsService;
+  
+  late final MedicationsService _medicationsService = _cachedMedicationsService ??= 
+    MedicationsService(_cachedApiClient ??= ApiClient());
 
   List<MedicationModel> _medications = [];
   bool _isLoading = true;
@@ -173,11 +179,26 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
       builder: (context) => AddMedicationModal(
         medicationsService: _medicationsService,
         onSuccess: () {
-          // This will be called after dialog closes
+          // Force immediate refresh when modal closes successfully
+          if (mounted) {
+            _lastLoadTime = null;
+            _forceRefresh = true;
+            ReminderService().forceSync().then((_) {
+              if (mounted) {
+                _loadMedications();
+              }
+            });
+          }
         },
         editingMedication: medication,
       ),
     );
+    
+    // Also reload data after dialog closes (as backup, in case onSuccess wasn't called)
+    if (mounted) {
+      _lastLoadTime = null;
+      _loadMedications();
+    }
     
     // Reload data after dialog closes (regardless of result)
     // This ensures data is refreshed even if onSuccess wasn't called
@@ -439,8 +460,8 @@ class _StatCard extends StatelessWidget {
                 child: Text(
                   label,
                   style: TextStyle(
-                    color: Colors.grey[700],
                     fontSize: 11,
+                    color: Colors.grey[700],
                   ),
                   textAlign: TextAlign.center,
                   maxLines: 2,

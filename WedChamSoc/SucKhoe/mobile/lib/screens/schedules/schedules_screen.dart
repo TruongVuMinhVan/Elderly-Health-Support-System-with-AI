@@ -18,7 +18,12 @@ class SchedulesScreen extends StatefulWidget {
 }
 
 class _SchedulesScreenState extends State<SchedulesScreen> {
-  final _schedulesService = SchedulesService(ApiClient());
+  // Cache API client and service to avoid recreating on every rebuild
+  static ApiClient? _cachedApiClient;
+  static SchedulesService? _cachedSchedulesService;
+  
+  late final SchedulesService _schedulesService = _cachedSchedulesService ??= 
+    SchedulesService(_cachedApiClient ??= ApiClient());
 
   List<ScheduleModel> _todaySchedules = [];
   List<ScheduleModel> _upcomingSchedules = [];
@@ -123,27 +128,30 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
   }
 
   Future<void> _showAddModal({ScheduleModel? editingSchedule}) async {
-    final result = await showModalBottomSheet(
+    await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       builder: (context) {
         return AddScheduleModal(
           schedulesService: _schedulesService,
           onSuccess: () {
-            // This will be called after modal closes
+            // Force immediate refresh when modal closes successfully
+            if (mounted) {
+              _lastLoadTime = null;
+              ReminderService().forceSync().then((_) {
+                if (mounted) {
+                  _loadData();
+                }
+              });
+            }
           },
           editingSchedule: editingSchedule,
         );
       },
     );
     
-    // Reload data after modal closes (regardless of result)
-    // This ensures data is refreshed even if onSuccess wasn't called
+    // Also reload data after modal closes (as backup, in case onSuccess wasn't called)
     if (mounted) {
-      // Reset last load time to force refresh
-      _lastLoadTime = null;
-      await ReminderService().forceSync();
-      // Reset last load time to force immediate refresh
       _lastLoadTime = null;
       _loadData();
     }

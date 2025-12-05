@@ -97,6 +97,8 @@ class _AddScheduleModalState extends State<AddScheduleModal> {
           scheduleData,
         );
       } else {
+        // Note: createSchedule uses scheduleData which already has UTC datetime
+        // This ScheduleModel is just for type checking, actual data comes from scheduleData
         await widget.schedulesService.createSchedule(
           ScheduleModel(
             id: 0,

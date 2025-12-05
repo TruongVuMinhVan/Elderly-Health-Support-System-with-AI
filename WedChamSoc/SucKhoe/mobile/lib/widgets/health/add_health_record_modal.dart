@@ -178,7 +178,15 @@ class _AddHealthRecordModalState extends State<AddHealthRecordModal> {
                     hintText: '120',
                   ),
                   keyboardType: TextInputType.number,
-                  validator: (v) => (v == null || v.isEmpty) ? 'Vui lòng nhập tâm thu' : null,
+                  validator: (v) {
+                    if (v == null || v.isEmpty) return 'Vui lòng nhập tâm thu';
+                    final value = int.tryParse(v);
+                    if (value == null) return 'Giá trị không hợp lệ';
+                    if (value < 50 || value > 300) {
+                      return 'Giá trị phải trong khoảng 50-300 mmHg';
+                    }
+                    return null;
+                  },
                 ),
               ),
               const SizedBox(width: 12),
@@ -190,7 +198,15 @@ class _AddHealthRecordModalState extends State<AddHealthRecordModal> {
                     hintText: '80',
                   ),
                   keyboardType: TextInputType.number,
-                  validator: (v) => (v == null || v.isEmpty) ? 'Vui lòng nhập tâm trương' : null,
+                  validator: (v) {
+                    if (v == null || v.isEmpty) return 'Vui lòng nhập tâm trương';
+                    final value = int.tryParse(v);
+                    if (value == null) return 'Giá trị không hợp lệ';
+                    if (value < 50 || value > 300) {
+                      return 'Giá trị phải trong khoảng 50-300 mmHg';
+                    }
+                    return null;
+                  },
                 ),
               ),
             ],
@@ -207,29 +223,67 @@ class _AddHealthRecordModalState extends State<AddHealthRecordModal> {
     String? hintText;
     bool isDecimal = false;
 
+    String? Function(String?)? validator;
+
     switch (_recordType) {
       case 'blood_sugar':
         fieldLabel = 'Đường huyết * ($unit)';
         controller = _bloodSugarCtrl;
         hintText = '100';
         isDecimal = true;
+        validator = (v) {
+          if (v == null || v.isEmpty) return 'Vui lòng nhập giá trị';
+          final value = double.tryParse(v);
+          if (value == null) return 'Giá trị không hợp lệ';
+          if (value < 20 || value > 600) {
+            return 'Giá trị phải trong khoảng 20-600 mg/dL';
+          }
+          return null;
+        };
         break;
       case 'weight':
         fieldLabel = 'Cân nặng * ($unit)';
         controller = _weightCtrl;
         hintText = '65.5';
         isDecimal = true;
+        validator = (v) {
+          if (v == null || v.isEmpty) return 'Vui lòng nhập giá trị';
+          final value = double.tryParse(v);
+          if (value == null) return 'Giá trị không hợp lệ';
+          if (value < 20 || value > 300) {
+            return 'Giá trị phải trong khoảng 20-300 kg';
+          }
+          return null;
+        };
         break;
       case 'heart_rate':
         fieldLabel = 'Nhịp tim * ($unit)';
         controller = _heartRateCtrl;
         hintText = '72';
+        validator = (v) {
+          if (v == null || v.isEmpty) return 'Vui lòng nhập giá trị';
+          final value = int.tryParse(v);
+          if (value == null) return 'Giá trị không hợp lệ';
+          if (value < 30 || value > 200) {
+            return 'Giá trị phải trong khoảng 30-200 bpm';
+          }
+          return null;
+        };
         break;
       case 'temperature':
         fieldLabel = 'Nhiệt độ * ($unit)';
         controller = _temperatureCtrl;
         hintText = '36.5';
         isDecimal = true;
+        validator = (v) {
+          if (v == null || v.isEmpty) return 'Vui lòng nhập giá trị';
+          final value = double.tryParse(v);
+          if (value == null) return 'Giá trị không hợp lệ';
+          if (value < 30 || value > 45) {
+            return 'Giá trị phải trong khoảng 30-45°C';
+          }
+          return null;
+        };
         break;
     }
 
@@ -240,7 +294,7 @@ class _AddHealthRecordModalState extends State<AddHealthRecordModal> {
         hintText: hintText,
       ),
       keyboardType: TextInputType.numberWithOptions(decimal: isDecimal),
-      validator: (v) => (v == null || v.isEmpty) ? 'Vui lòng nhập giá trị' : null,
+      validator: validator,
     );
   }
 

@@ -343,25 +343,53 @@ async def get_all_health_stats(
                 detail="User not found"
             )
 
-        # Get all records in a single query (much more efficient)
-        # Limit to 1000 most recent records per type to reduce memory usage
-        all_records = db.query(HealthRecord).filter(
-            HealthRecord.user_id == user.id
-        ).order_by(desc(HealthRecord.recorded_at)).limit(5000).all()  # Limit total records to reduce RAM
-
-        # Group records by type
-        records_by_type = {}
-        for record in all_records:
-            record_type = record.record_type.value
-            if record_type not in records_by_type:
-                records_by_type[record_type] = []
-            records_by_type[record_type].append(record)
-
-        # Calculate stats for each type
-        result = {}
+        # Optimized: Only load records needed for stats (last 30 days + latest record per type)
+        # This significantly reduces memory usage and query time
         now = datetime.now()
         week_ago = now - timedelta(days=7)
         month_ago = now - timedelta(days=30)
+        
+        # Get latest record for each type (for latest_value and latest_date)
+        # And all records from last 30 days (for averages) - limit to 500 per type
+        all_types = ['blood_pressure', 'heart_rate', 'blood_sugar', 'weight', 'temperature']
+        records_by_type = {}
+        total_counts = {}
+        
+        for record_type_str in all_types:
+            record_type_enum = RecordTypeEnum(record_type_str)
+            
+            # Get total count (lightweight)
+            total_counts[record_type_str] = db.query(HealthRecord).filter(
+                HealthRecord.user_id == user.id,
+                HealthRecord.record_type == record_type_enum
+            ).count()
+            
+            # Get latest record for this type
+            latest_record = db.query(HealthRecord).filter(
+                HealthRecord.user_id == user.id,
+                HealthRecord.record_type == record_type_enum
+            ).order_by(desc(HealthRecord.recorded_at)).first()
+            
+            # Get records from last 30 days for this type (limit to 500 to avoid memory issues)
+            recent_records = db.query(HealthRecord).filter(
+                HealthRecord.user_id == user.id,
+                HealthRecord.record_type == record_type_enum,
+                HealthRecord.recorded_at >= month_ago
+            ).order_by(desc(HealthRecord.recorded_at)).limit(500).all()
+            
+            # Combine: latest + recent records (avoid duplicates)
+            records = []
+            if latest_record:
+                records.append(latest_record)
+            # Add recent records that are not the latest
+            for rec in recent_records:
+                if not latest_record or rec.id != latest_record.id:
+                    records.append(rec)
+            
+            records_by_type[record_type_str] = records
+
+        # Calculate stats for each type
+        result = {}
 
         def get_numeric_value(record):
             """Extract numeric value from record for averaging"""
@@ -417,7 +445,7 @@ async def get_all_health_stats(
 
             result[record_type] = {
                 "record_type": record_type,
-                "total_records": len(records),
+                "total_records": total_counts.get(record_type, 0),  # Use count from database
                 "latest_value": latest_value,
                 "latest_date": latest_date.isoformat() if latest_date else None,
                 "average_last_7_days": avg_7d,

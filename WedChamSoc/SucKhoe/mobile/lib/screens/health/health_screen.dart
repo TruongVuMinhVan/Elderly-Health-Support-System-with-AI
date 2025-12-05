@@ -17,7 +17,12 @@ class HealthScreen extends StatefulWidget {
 }
 
 class _HealthScreenState extends State<HealthScreen> {
-  final _healthService = HealthService(ApiClient());
+  // Cache API client and service to avoid recreating on every rebuild
+  static ApiClient? _cachedApiClient;
+  static HealthService? _cachedHealthService;
+  
+  late final HealthService _healthService = _cachedHealthService ??= 
+    HealthService(_cachedApiClient ??= ApiClient());
 
   List<HealthRecordModel> _recentRecords = [];
   Map<String, Map<String, dynamic>> _stats = {};
@@ -33,7 +38,7 @@ class _HealthScreenState extends State<HealthScreen> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _loadData(showLoading: true); // Chỉ hiển thị loading ở lần load đầu tiên
   }
 
   @override
@@ -45,24 +50,23 @@ class _HealthScreenState extends State<HealthScreen> {
       return;
     }
     
-    // Auto-refresh when returning to this screen (e.g., from another screen)
-    // Only refresh if enough time has passed since last load to avoid excessive reloading
-    final now = DateTime.now();
-    if (_lastLoadTime == null || 
-        now.difference(_lastLoadTime!) > _minRefreshInterval) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _loadData();
-        }
-      });
-    }
+    // Không auto-refresh trong didChangeDependencies để tránh reload không cần thiết
+    // Chỉ refresh khi user pull to refresh hoặc sau khi thêm/xóa record
   }
 
-  Future<void> _loadData() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
+  Future<void> _loadData({bool showLoading = false}) async {
+    // Chỉ hiển thị loading indicator nếu đây là lần load đầu tiên hoặc user yêu cầu
+    if (showLoading || _recentRecords.isEmpty) {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+    } else {
+      // Nếu đã có data, chỉ clear error, không hiển thị loading
+      setState(() {
+        _error = null;
+      });
+    }
 
     try {
       // Load records and all stats in parallel (optimized: 1 stats call instead of 4)
@@ -116,15 +120,17 @@ class _HealthScreenState extends State<HealthScreen> {
         selectedType: selectedType,
         healthService: _healthService,
         onSuccess: () {
-          // This will be called after dialog closes
+          // Force immediate refresh when dialog closes successfully
+          if (mounted) {
+            _lastLoadTime = null;
+            _loadData();
+          }
         },
       ),
     );
     
-    // Reload data after dialog closes (regardless of result)
-    // This ensures data is refreshed even if onSuccess wasn't called
+    // Also reload data after dialog closes (as backup, in case onSuccess wasn't called)
     if (mounted) {
-      // Reset last load time to force immediate refresh
       _lastLoadTime = null;
       _loadData();
     }
@@ -188,24 +194,6 @@ class _HealthScreenState extends State<HealthScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    if (_isLoading) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text('Theo dõi sức khỏe'),
-          backgroundColor: Colors.blue,
-          foregroundColor: Colors.white,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () {
-              // Navigate to dashboard
-              Navigator.pushReplacementNamed(context, '/dashboard');
-            },
-          ),
-        ),
-        body: const Center(child: CircularProgressIndicator()),
-      );
-    }
 
     return Scaffold(
       appBar: AppBar(
@@ -221,8 +209,10 @@ class _HealthScreenState extends State<HealthScreen> {
         ),
       ),
       body: RefreshIndicator(
-        onRefresh: _loadData,
-        child: ListView(
+        onRefresh: () => _loadData(showLoading: false), // Không hiển thị loading khi pull to refresh
+        child: _isLoading && _recentRecords.isEmpty
+            ? const Center(child: CircularProgressIndicator())
+            : ListView(
           padding: const EdgeInsets.all(16),
           children: [
             Row(

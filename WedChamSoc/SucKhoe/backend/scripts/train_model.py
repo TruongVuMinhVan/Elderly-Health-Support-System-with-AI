@@ -31,6 +31,14 @@ from tqdm import tqdm
 import argparse
 from datetime import datetime
 
+# Try to import Mixup/CutMix from timm
+try:
+    from timm.data.mixup import Mixup
+    MIXUP_AVAILABLE = True
+except ImportError:
+    MIXUP_AVAILABLE = False
+    print("⚠️  timm.data.mixup not available, Mixup/CutMix will be disabled")
+
 # Fix encoding for Windows console
 if sys.platform == "win32":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
@@ -326,8 +334,12 @@ def create_model(model_name="resnet50", num_classes=61, pretrained=True, dropout
     return model.to(device)
 
 
-def train_epoch(model, dataloader, criterion, optimizer, epoch, verbose=False, gradient_accumulation_steps=1):
-    """Train for one epoch with memory optimization"""
+def train_epoch(model, dataloader, criterion, optimizer, epoch, verbose=False, gradient_accumulation_steps=1, mixup_fn=None):
+    """Train for one epoch with memory optimization
+    
+    Args:
+        mixup_fn: Mixup/CutMix function (optional)
+    """
     model.train()
     running_loss = 0.0
     correct = 0
@@ -340,9 +352,20 @@ def train_epoch(model, dataloader, criterion, optimizer, epoch, verbose=False, g
         images = images.to(device, non_blocking=True)
         labels = labels.to(device, non_blocking=True)
         
+        # Apply Mixup/CutMix if enabled
+        if mixup_fn is not None:
+            images, labels = mixup_fn(images, labels)
+        
         # Forward pass
         outputs = model(images)
-        loss = criterion(outputs, labels)
+        
+        # Loss calculation (Mixup uses soft labels, so we need to handle it properly)
+        if mixup_fn is not None and labels.dim() > 1:
+            # Soft labels from Mixup (one-hot encoded)
+            loss = torch.sum(-labels * torch.nn.functional.log_softmax(outputs, dim=1), dim=1).mean()
+        else:
+            # Hard labels (normal case)
+            loss = criterion(outputs, labels)
         
         # Scale loss for gradient accumulation
         loss = loss / gradient_accumulation_steps
@@ -358,9 +381,19 @@ def train_epoch(model, dataloader, criterion, optimizer, epoch, verbose=False, g
         # Statistics (use original loss value for display)
         loss_value = loss.item() * gradient_accumulation_steps
         running_loss += loss_value
-        _, predicted = torch.max(outputs.data, 1)
-        total += labels.size(0)
-        correct += (predicted == labels).sum().item()
+        
+        # For accuracy calculation with Mixup, use argmax of soft labels
+        if mixup_fn is not None and labels.dim() > 1:
+            # Soft labels: get predicted class and true class from soft labels
+            _, predicted = torch.max(outputs.data, 1)
+            _, true_labels = torch.max(labels.data, 1)
+            total += labels.size(0)
+            correct += (predicted == true_labels).sum().item()
+        else:
+            # Hard labels: normal case
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
         
         # Clear variables to free memory
         del images, labels, outputs, loss
@@ -443,7 +476,7 @@ def validate(model, dataloader, criterion, verbose=False):
     return epoch_loss, epoch_acc
 
 
-def train(model_name="resnet50", resume_from=None, config_name="default", verbose=True, gradient_accumulation_steps=1, freeze_backbone_epochs=0, early_stopping_patience=15, dropout_rate=0.8, weight_decay=1e-4, use_label_smoothing=False, label_smoothing=0.1, strong_augmentation=False):
+def train(model_name="resnet50", resume_from=None, config_name="default", verbose=True, gradient_accumulation_steps=1, freeze_backbone_epochs=0, early_stopping_patience=15, dropout_rate=0.8, weight_decay=1e-4, use_label_smoothing=False, label_smoothing=0.1, strong_augmentation=False, use_mixup=False, mixup_alpha=0.8, cutmix_alpha=1.0, mixup_prob=0.5):
     """Main training function with memory optimization
     
     Args:
@@ -460,6 +493,10 @@ def train(model_name="resnet50", resume_from=None, config_name="default", verbos
         use_label_smoothing: Whether to use label smoothing (default: False)
         label_smoothing: Label smoothing factor (default: 0.1)
         strong_augmentation: Whether to use strong data augmentation (default: False)
+        use_mixup: Whether to use Mixup/CutMix (default: False)
+        mixup_alpha: Mixup alpha parameter (default: 0.8)
+        cutmix_alpha: CutMix alpha parameter (default: 1.0)
+        mixup_prob: Probability of applying Mixup/CutMix (default: 0.5)
     """
     
     # Use config based on config_name
@@ -652,6 +689,28 @@ def train(model_name="resnet50", resume_from=None, config_name="default", verbos
     if verbose:
         print(f"📊 Optimizer: AdamW with weight_decay={weight_decay_val}")
     
+    # Setup Mixup/CutMix
+    mixup_fn = None
+    use_mixup_config = current_config.get("use_mixup", use_mixup)
+    if use_mixup_config and MIXUP_AVAILABLE:
+        mixup_alpha_val = current_config.get("mixup_alpha", mixup_alpha)
+        cutmix_alpha_val = current_config.get("cutmix_alpha", cutmix_alpha)
+        mixup_prob_val = current_config.get("mixup_prob", mixup_prob)
+        
+        mixup_fn = Mixup(
+            mixup_alpha=mixup_alpha_val,
+            cutmix_alpha=cutmix_alpha_val,
+            prob=mixup_prob_val,
+            switch_prob=0.5,  # 50% Mixup, 50% CutMix
+            mode='elem',
+            num_classes=num_classes
+        )
+        if verbose:
+            print(f"📊 Using Mixup/CutMix (mixup_alpha={mixup_alpha_val}, cutmix_alpha={cutmix_alpha_val}, prob={mixup_prob_val})")
+    elif use_mixup_config and not MIXUP_AVAILABLE:
+        if verbose:
+            print(f"⚠️  Mixup requested but not available (timm.data.mixup not found), disabling Mixup")
+    
     # Better scheduler: CosineAnnealingLR for better convergence
     # Note: Scheduler will be recreated after loading checkpoint if resuming
     use_cosine_scheduler = current_config.get("use_cosine_scheduler", False)
@@ -805,7 +864,8 @@ def train(model_name="resnet50", resume_from=None, config_name="default", verbos
         train_loss, train_acc = train_epoch(
             model, train_loader, criterion, optimizer, epoch, 
             verbose=verbose, 
-            gradient_accumulation_steps=gradient_accumulation_steps
+            gradient_accumulation_steps=gradient_accumulation_steps,
+            mixup_fn=mixup_fn
         )
         
         # Clear cache after training
@@ -962,6 +1022,14 @@ if __name__ == "__main__":
                        help="Use CosineAnnealingLR instead of ReduceLROnPlateau")
     parser.add_argument("--early-stopping", type=int, default=15,
                        help="Early stopping patience (default: 15). Set to 0 to disable early stopping")
+    parser.add_argument("--use-mixup", action="store_true",
+                       help="Use Mixup/CutMix data augmentation (default: False)")
+    parser.add_argument("--mixup-alpha", type=float, default=0.8,
+                       help="Mixup alpha parameter (default: 0.8)")
+    parser.add_argument("--cutmix-alpha", type=float, default=1.0,
+                       help="CutMix alpha parameter (default: 1.0)")
+    parser.add_argument("--mixup-prob", type=float, default=0.5,
+                       help="Probability of applying Mixup/CutMix (default: 0.5)")
     
     args = parser.parse_args()
     
@@ -985,6 +1053,10 @@ if __name__ == "__main__":
         verbose=args.verbose,
         gradient_accumulation_steps=args.gradient_accumulation,
         freeze_backbone_epochs=args.freeze_backbone,
-        early_stopping_patience=args.early_stopping
+        early_stopping_patience=args.early_stopping,
+        use_mixup=args.use_mixup,
+        mixup_alpha=args.mixup_alpha,
+        cutmix_alpha=args.cutmix_alpha,
+        mixup_prob=args.mixup_prob
     )
 
