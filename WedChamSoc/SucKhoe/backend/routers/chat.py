@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
 # Gemini configuration
-GEMINI_API_KEY = config('GEMINI_API_KEY', default='AIzaSyAVQnxGZpu1tOuYLjCeCOQ9qJM7FWv06W4')
+GEMINI_API_KEY = config('GEMINI_API_KEY', default='')
 GEMINI_MODEL = config('GEMINI_MODEL', default='gemini-2.0-flash')
 GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
 
@@ -216,8 +216,8 @@ class HealthAdviceService:
                 user_context['needs_more_info'] = True
                 user_context['symptom_type'] = HealthAdviceService._detect_symptom_type(message_lower)
             
-            # Use Gemini if API key is available
-            if GEMINI_API_KEY and GEMINI_API_KEY != '':
+            # Use Gemini if API key is available and valid
+            if GEMINI_API_KEY and GEMINI_API_KEY != '' and not GEMINI_API_KEY.startswith('YOUR_'):
                 try:
                     response = await HealthAdviceService._get_gemini_response(user_message, user_context)
                     logger.info(f"✅ Gemini API response generated successfully")
@@ -227,7 +227,7 @@ class HealthAdviceService:
                     # Fallback to template but ensure symptom-based response if symptoms detected
                     return HealthAdviceService._get_template_response(user_message)
             else:
-                logger.warning("⚠️ Gemini API key not configured, using template response")
+                logger.warning("⚠️ Gemini API key not configured properly, using template response")
                 # Fallback to template responses
                 return HealthAdviceService._get_template_response(user_message)
                 
