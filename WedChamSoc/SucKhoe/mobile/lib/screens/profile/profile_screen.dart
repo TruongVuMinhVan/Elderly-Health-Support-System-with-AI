@@ -246,8 +246,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Hồ sơ cá nhân'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
       ),
       body: _loading && _fullNameCtrl.text.isEmpty
           ? const Center(child: CircularProgressIndicator())

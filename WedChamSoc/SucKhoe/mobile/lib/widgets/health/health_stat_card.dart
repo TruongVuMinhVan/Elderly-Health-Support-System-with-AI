@@ -56,7 +56,11 @@ class HealthStatCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                const Icon(Icons.show_chart, color: Colors.grey, size: 18),
+                Icon(
+                  Icons.show_chart, 
+                  color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.6), 
+                  size: 18,
+                ),
               ],
             ),
             const SizedBox(height: 6),
@@ -78,26 +82,26 @@ class HealthStatCard extends StatelessWidget {
                         if (latestDate != null)
                           Text(
                             _formatDate(latestDate.toString()),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 10,
-                              color: Colors.black54,
+                              color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
                             ),
                           ),
                         Text(
                           'Tổng: $totalRecords lần',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 10,
-                            color: Colors.black54,
+                            color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
                           ),
                         ),
                       ],
                     )
-                  : const Center(
+                  : Center(
                       child: Text(
                         'Chưa có dữ liệu',
                         style: TextStyle(
                           fontSize: 11,
-                          color: Colors.black54,
+                          color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
                         ),
                       ),
                     ),

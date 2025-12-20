@@ -375,14 +375,36 @@ class NotificationService {
     String? location,
     String? doctorName,
     int advanceMinutes = 30,
+    bool allowImmediateNotification = true, // Cho phép tạo thông báo ngay lập tức
   }) async {
     try {
+      final now = DateTime.now();
       final reminderTime = scheduledTime.subtract(Duration(minutes: advanceMinutes));
       
-      // Chỉ schedule nếu reminder time trong tương lai
-      if (reminderTime.isBefore(DateTime.now())) {
-        print('⏭️ Skipping reminder for schedule $scheduleId: reminder time is in the past ($reminderTime)');
-        return; // Không schedule nếu đã quá thời gian nhắc
+      // Debug log
+      print('🔍 Processing schedule $scheduleId:');
+      print('   - Title: $title');
+      print('   - Scheduled time: $scheduledTime');
+      print('   - Reminder time: $reminderTime (${advanceMinutes} min before)');
+      print('   - Current time: $now');
+      
+      // Kiểm tra xem lịch hẹn đã qua chưa
+      if (scheduledTime.isBefore(now)) {
+        print('⏭️ Skipping reminder for schedule $scheduleId: scheduled time ($scheduledTime) is already past');
+        return;
+      }
+      
+      // Nếu reminder time đã qua nhưng lịch hẹn chưa đến -> tạo thông báo ngay lập tức
+      DateTime finalReminderTime = reminderTime;
+      if (reminderTime.isBefore(now)) {
+        if (allowImmediateNotification) {
+          // Tạo thông báo ngay lập tức (sau 10 giây để tránh spam)
+          finalReminderTime = now.add(const Duration(seconds: 10));
+          print('⚠️ Reminder time for schedule $scheduleId is in the past, scheduling immediate notification at $finalReminderTime');
+        } else {
+          print('⏭️ Skipping reminder for schedule $scheduleId: reminder time ($reminderTime) is in the past and immediate notification is disabled');
+          return;
+        }
       }
       
       String body = 'Bạn có lịch hẹn: $title';
@@ -390,17 +412,27 @@ class NotificationService {
       if (doctorName != null && doctorName.isNotEmpty) body += '\nBác sĩ: $doctorName';
       body += '\nThời gian: ${scheduledTime.hour.toString().padLeft(2, '0')}:${scheduledTime.minute.toString().padLeft(2, '0')}';
       
+      // Thêm thông tin về thời gian còn lại
+      final timeUntilAppointment = scheduledTime.difference(now);
+      if (timeUntilAppointment.inMinutes > 0) {
+        if (timeUntilAppointment.inHours > 0) {
+          body += '\nCòn ${timeUntilAppointment.inHours} giờ ${timeUntilAppointment.inMinutes % 60} phút';
+        } else {
+          body += '\nCòn ${timeUntilAppointment.inMinutes} phút';
+        }
+      }
+      
       // scheduleNotification handles errors internally and retries with inexact mode
       await scheduleNotification(
         id: 2000 + scheduleId, // Unique ID cho schedule reminders
         title: 'Nhắc nhở lịch hẹn',
         body: body,
-        scheduledDate: reminderTime,
+        scheduledDate: finalReminderTime, // Sử dụng finalReminderTime thay vì reminderTime
         payload: 'schedule:$scheduleId',
       );
       
       // Log để debug
-      print('📅 Scheduled reminder for schedule $scheduleId: $title at ${reminderTime.toString()} (${advanceMinutes} min before)');
+      print('📅 ✅ Successfully scheduled reminder for schedule $scheduleId: $title at ${finalReminderTime.toString()} (original: ${reminderTime.toString()}, ${advanceMinutes} min before)');
     } catch (e) {
       // This should rarely be hit since scheduleNotification handles errors internally
       print('❌ Error in scheduleAppointmentReminder for schedule $scheduleId: $e');
@@ -507,6 +539,69 @@ class NotificationService {
       title: 'Test Notification',
       body: 'Nếu bạn thấy thông báo này, hệ thống notifications đang hoạt động!',
     );
+  }
+
+  /// Test scheduled notification (5 seconds from now)
+  Future<void> testScheduledNotification() async {
+    final testTime = DateTime.now().add(const Duration(seconds: 5));
+    await scheduleNotification(
+      id: 9998,
+      title: 'Test Scheduled Notification',
+      body: 'Thông báo test được lên lịch 5 giây trước!',
+      scheduledDate: testTime,
+    );
+    print('📅 Test notification scheduled for: $testTime');
+  }
+
+  /// Test appointment reminder with past reminder time but future appointment
+  Future<void> testAppointmentReminder() async {
+    final now = DateTime.now();
+    final appointmentTime = now.add(const Duration(minutes: 15)); // 15 phút nữa
+    
+    await scheduleAppointmentReminder(
+      scheduleId: 9997,
+      title: 'Test Appointment',
+      scheduledTime: appointmentTime,
+      location: 'Test Location',
+      doctorName: 'Dr. Test',
+      advanceMinutes: 30, // Sẽ trigger immediate notification vì 30 min ago đã qua
+    );
+    
+    print('📅 Test appointment reminder scheduled: appointment at $appointmentTime');
+  }
+
+  /// Get notification permission status and debug info
+  Future<Map<String, dynamic>> getNotificationStatus() async {
+    final status = <String, dynamic>{};
+    
+    status['initialized'] = _initialized;
+    status['platform'] = Platform.operatingSystem;
+    
+    if (Platform.isAndroid) {
+      status['hasExactAlarmPermission'] = await canScheduleExactAlarms();
+      
+      final androidPlugin = _notifications.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      
+      if (androidPlugin != null) {
+        try {
+          status['notificationPermission'] = await androidPlugin.areNotificationsEnabled();
+        } catch (e) {
+          status['notificationPermissionError'] = e.toString();
+        }
+      }
+    }
+    
+    final pendingNotifications = await getPendingNotifications();
+    status['pendingNotificationsCount'] = pendingNotifications.length;
+    status['pendingNotifications'] = pendingNotifications.map((n) => {
+      'id': n.id,
+      'title': n.title,
+      'body': n.body,
+      'payload': n.payload,
+    }).toList();
+    
+    return status;
   }
 }
 

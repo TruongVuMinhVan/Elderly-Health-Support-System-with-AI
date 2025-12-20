@@ -48,9 +48,9 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
       return;
     }
     
-    // Auto-refresh when returning to this screen (e.g., from another screen)
-    // Only refresh if enough time has passed since last load to avoid excessive reloading
-    // Or if force refresh is requested
+    // Tắt auto-refresh trong didChangeDependencies để tránh reload không cần thiết
+    // Chỉ refresh khi user pull to refresh hoặc sau khi thêm/xóa medication
+    // Auto-refresh gây ra quá nhiều rebuilds và API calls
     if (_forceRefresh) {
       _forceRefresh = false;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -58,20 +58,12 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
           _loadMedications();
         }
       });
-    } else {
-      final now = DateTime.now();
-      if (_lastLoadTime == null || 
-          now.difference(_lastLoadTime!) > _minRefreshInterval) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            _loadMedications();
-          }
-        });
-      }
     }
   }
 
   Future<void> _loadMedications() async {
+    if (!mounted) return; // ✅ Kiểm tra mounted trước khi setState
+    
     setState(() {
       _isLoading = true;
       _error = null;
@@ -81,6 +73,9 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
       final medications = await _medicationsService.getMedications(
         activeOnly: !_showInactive,
       );
+      
+      if (!mounted) return; // ✅ Kiểm tra mounted sau async operation
+      
       setState(() {
         _medications = medications;
         _lastLoadTime = DateTime.now();
@@ -89,6 +84,8 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
       if (!mounted) return;
       _navigateToLogin();
     } catch (e) {
+      if (!mounted) return; // ✅ Kiểm tra mounted trước setState
+      
       setState(() {
         _error = 'Không thể tải danh sách thuốc. Vui lòng thử lại.';
       });
@@ -216,12 +213,18 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
     }
 
     if (medication.endDate != null) {
+      // Normalize dates to compare only the date part (ignore time)
       final endDate = DateTime.parse(medication.endDate!);
+      final endDateOnly = DateTime(endDate.year, endDate.month, endDate.day);
       final today = DateTime.now();
-      final daysLeft = endDate.difference(today).inDays;
+      final todayOnly = DateTime(today.year, today.month, today.day);
+      final daysLeft = endDateOnly.difference(todayOnly).inDays;
 
-      if (daysLeft <= 0) {
+      if (daysLeft < 0) {
         return Colors.red;
+      } else if (daysLeft == 0) {
+        // Hôm nay là ngày cuối cùng, vẫn còn dùng
+        return Colors.green;
       } else if (daysLeft <= 7) {
         return Colors.orange;
       }
@@ -236,12 +239,18 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
     }
 
     if (medication.endDate != null) {
+      // Normalize dates to compare only the date part (ignore time)
       final endDate = DateTime.parse(medication.endDate!);
+      final endDateOnly = DateTime(endDate.year, endDate.month, endDate.day);
       final today = DateTime.now();
-      final daysLeft = endDate.difference(today).inDays;
+      final todayOnly = DateTime(today.year, today.month, today.day);
+      final daysLeft = endDateOnly.difference(todayOnly).inDays;
 
-      if (daysLeft <= 0) {
+      if (daysLeft < 0) {
         return 'Hết hạn';
+      } else if (daysLeft == 0) {
+        // Hôm nay là ngày cuối cùng, vẫn còn dùng
+        return 'Đang dùng';
       } else if (daysLeft <= 7) {
         return 'Còn $daysLeft ngày';
       }
@@ -255,7 +264,12 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
     final activeCount = _medications.where((m) => m.isActive).length;
     final expiringCount = _medications.where((m) {
       if (!m.isActive || m.endDate == null) return false;
-      final daysLeft = DateTime.parse(m.endDate!).difference(DateTime.now()).inDays;
+      // Normalize dates to compare only the date part (ignore time)
+      final endDate = DateTime.parse(m.endDate!);
+      final endDateOnly = DateTime(endDate.year, endDate.month, endDate.day);
+      final today = DateTime.now();
+      final todayOnly = DateTime(today.year, today.month, today.day);
+      final daysLeft = endDateOnly.difference(todayOnly).inDays;
       return daysLeft <= 7 && daysLeft > 0;
     }).length;
     final inactiveCount = _medications.where((m) => !m.isActive).length;
@@ -263,8 +277,6 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Quản lý thuốc'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
@@ -296,8 +308,8 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
                         icon: const Icon(Icons.add),
                         label: const Text('Thêm thuốc mới'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          foregroundColor: Colors.white,
+                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          foregroundColor: Theme.of(context).colorScheme.onPrimary,
                         ),
                       ),
                     ],

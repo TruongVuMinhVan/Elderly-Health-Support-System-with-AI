@@ -13,7 +13,7 @@ from database import get_database
 from auth_simple import get_current_user
 from models.user import User
 from models.skin_disease import SkinDisease, SkinDiseasePrediction
-from ml.predictor import get_predictor
+from ml.predictor import get_predictor, get_ensemble_predictor
 
 # Logging setup
 logger = logging.getLogger(__name__)
@@ -217,9 +217,9 @@ async def quick_scan(
             temp_file.write(content)
             temp_file.close()
             
-            # Load predictor
+            # Load predictor (sử dụng ViT model)
             try:
-                predictor = get_predictor(model_name="resnet50", config_name="from_dataset")
+                predictor = get_predictor(model_name="vit", config_name="from_dataset")
             except FileNotFoundError as e:
                 logger.error(f"Model not found: {e}")
                 raise HTTPException(
@@ -238,7 +238,7 @@ async def quick_scan(
                 prediction_result = predictor.predict(
                     temp_file_path, 
                     top_k=3, 
-                    confidence_threshold=0.5
+                    confidence_threshold=0.4  # Giảm threshold cho ViT để tăng độ nhạy
                 )
             except Exception as e:
                 logger.error(f"Error during prediction: {e}")
@@ -323,66 +323,54 @@ async def predict_skin_disease(
 ):
 
     try:
-        # Save uploaded file
+        # Lưu file ảnh đã upload
         image_path = save_uploaded_file(image, current_user["id"])
         full_image_path = Path(image_path)
         
-        # Load predictor (uses from_dataset config to match quick-scan)
+        # Tải ensemble predictor (kết hợp ResNet50 + ViT)
         try:
-            predictor = get_predictor(model_name="resnet50", config_name="from_dataset")
+            predictor = get_ensemble_predictor(config_name="from_dataset")
         except FileNotFoundError as e:
-            logger.error(f"Model not found: {e}")
+            logger.error(f"Không tìm thấy model: {e}")
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="AI model not available. Please ensure model is trained."
+                detail="Model AI không khả dụng. Vui lòng đảm bảo model đã được train."
             )
         except Exception as e:
-            logger.error(f"Error loading model: {e}")
+            logger.error(f"Lỗi tải model: {e}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to load AI model: {str(e)}"
+                detail=f"Không thể tải model AI: {str(e)}"
             )
         
-        # Perform prediction
+        # Thực hiện dự đoán
         try:
-            prediction_result = predictor.predict(full_image_path, top_k=3, confidence_threshold=0.5)
+            prediction_result = predictor.predict(full_image_path, top_k=3, confidence_threshold=0.4)  # ViT model
         except Exception as e:
-            logger.error(f"Error during prediction: {e}")
+            logger.error(f"Lỗi khi dự đoán: {e}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Prediction failed: {str(e)}"
+                detail=f"Dự đoán thất bại: {str(e)}"
             )
         
-        # Map predicted disease name to database
-        # Model outputs normalized names (e.g., 'basal_cell_carcinoma', 'melanoma')
-        # Database stores names in same format, match exactly
+        # Ánh xạ tên bệnh từ model sang database
         predicted_disease_name = prediction_result["predicted_disease"]
         confidence = prediction_result["confidence"]
-        
-        # Normalize predicted name for matching (lowercase, handle underscores)
         predicted_name_normalized = predicted_disease_name.lower().strip()
         
-        # Try exact match first (case-insensitive)
+        # Tìm bệnh trong database (thử nhiều cách: exact, underscore, space, hyphen, partial)
         disease = db.query(SkinDisease).filter(
             SkinDisease.name.ilike(predicted_name_normalized)
         ).first()
         
-        # If not found, try with underscore variations
         if not disease:
-            # Try with spaces instead of underscores
-            name_with_spaces = predicted_name_normalized.replace("_", " ")
             disease = db.query(SkinDisease).filter(
-                SkinDisease.name.ilike(name_with_spaces)
+                SkinDisease.name.ilike(predicted_name_normalized.replace("_", " "))
             ).first()
-        
-        # If still not found, try with hyphens
         if not disease:
-            name_with_hyphens = predicted_name_normalized.replace("_", "-")
             disease = db.query(SkinDisease).filter(
-                SkinDisease.name.ilike(name_with_hyphens)
+                SkinDisease.name.ilike(predicted_name_normalized.replace("_", "-"))
             ).first()
-        
-        # If still not found, try partial match as fallback
         if not disease:
             disease = db.query(SkinDisease).filter(
                 SkinDisease.name.ilike(f"%{predicted_name_normalized}%")
@@ -390,7 +378,7 @@ async def predict_skin_disease(
         
         predicted_disease_id = disease.id if disease else None
         
-        # Save prediction to database
+        # Lưu kết quả dự đoán vào database
         prediction = SkinDiseasePrediction(
             user_id=current_user["id"],
             image_path=image_path,
@@ -401,34 +389,28 @@ async def predict_skin_disease(
         db.commit()
         db.refresh(prediction)
         
-        # Get disease info from database based on matched name
-        # This ensures we return complete disease information from database
+        # Lấy thông tin bệnh từ database
         predicted_disease = None
         if disease:
-            # Use the disease object we already found
             predicted_disease = disease.to_dict()
-            logger.info(f"✅ Disease matched: {disease.name} (ID: {disease.id})")
+            logger.info(f"✅ Đã khớp bệnh: {disease.name} (ID: {disease.id})")
         elif predicted_disease_id:
-            # Fallback: query again if we have ID but not object
-            predicted_disease_obj = db.query(SkinDisease).filter(
-                SkinDisease.id == predicted_disease_id
-            ).first()
-            if predicted_disease_obj:
-                predicted_disease = predicted_disease_obj.to_dict()
+            disease_obj = db.query(SkinDisease).filter(SkinDisease.id == predicted_disease_id).first()
+            if disease_obj:
+                predicted_disease = disease_obj.to_dict()
         
-        # Log prediction result
         if predicted_disease:
-            logger.info(f"✅ Prediction completed: {predicted_disease.get('name', predicted_disease_name)} (confidence: {confidence:.2%})")
+            logger.info(f"✅ Dự đoán hoàn tất: {predicted_disease.get('name', predicted_disease_name)} (confidence: {confidence:.2%})")
         else:
-            logger.warning(f"⚠️ Prediction completed but disease not found in database: {predicted_disease_name} (confidence: {confidence:.2%})")
+            logger.warning(f"⚠️ Dự đoán hoàn tất nhưng không tìm thấy bệnh trong database: {predicted_disease_name}")
         
-        # Return response with full disease information from database
+        # Trả về kết quả với đầy đủ thông tin bệnh
         return {
             "id": prediction.id,
             "user_id": prediction.user_id,
             "image_path": prediction.image_path,
-            "predicted_disease": predicted_disease,  # Full disease info from database
-            "predicted_disease_name": predicted_disease_name,  # Original name from model
+            "predicted_disease": predicted_disease,
+            "predicted_disease_name": predicted_disease_name,
             "confidence": float(prediction.confidence) if prediction.confidence else None,
             "created_at": prediction.created_at.isoformat() if prediction.created_at else None
         }
@@ -541,7 +523,7 @@ async def predict_skin_disease_test(
         
         # Perform prediction
         try:
-            prediction_result = predictor.predict(full_image_path, top_k=3, confidence_threshold=0.5)
+            prediction_result = predictor.predict(full_image_path, top_k=3, confidence_threshold=0.4)  # ViT model
         except Exception as e:
             logger.error(f"Error during prediction: {e}")
             raise HTTPException(

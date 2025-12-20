@@ -38,7 +38,7 @@ class _ChatbotConsultScreenState extends State<ChatbotConsultScreen> {
       _messages = [
         ConsultMessage(
           content:
-              'Xin chào! Tôi là chatbot tư vấn sơ bộ về sức khỏe da liễu. Hãy mô tả các triệu chứng bạn đang gặp phải.',
+              'Xin chào! Tôi là chatbot tư vấn sơ bộ về sức khỏe. Hãy mô tả các triệu chứng bạn đang gặp phải.',
           isUser: false,
           timestamp: DateTime.now(),
         ),

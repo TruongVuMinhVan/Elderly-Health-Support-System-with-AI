@@ -7,12 +7,14 @@ class LoadingMessageWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? Colors.grey[800] : Colors.grey[100];
-    final textColor = isDark ? Colors.grey[300] : Colors.grey[700];
+    final bgColor = isDark ? Colors.grey[800]! : Colors.grey[100]!;
+    final textColor = isDark ? Colors.grey[300]! : Colors.grey[700]!;
+    final borderColor = isDark ? Colors.grey[700]! : Colors.grey[300]!;
     
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.start,
         children: [
           Container(
             padding: const EdgeInsets.symmetric(
@@ -21,6 +23,7 @@ class LoadingMessageWidget extends StatelessWidget {
             ),
             decoration: BoxDecoration(
               color: bgColor,
+              border: Border.all(color: borderColor),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(

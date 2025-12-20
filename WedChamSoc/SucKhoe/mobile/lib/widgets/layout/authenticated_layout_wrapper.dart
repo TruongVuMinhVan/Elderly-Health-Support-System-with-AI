@@ -89,7 +89,7 @@ class _AuthenticatedLayoutWrapperState extends State<AuthenticatedLayoutWrapper>
           onTap: _onTabTapped,
           type: BottomNavigationBarType.fixed,
           selectedItemColor: Theme.of(context).primaryColor,
-          unselectedItemColor: Colors.grey,
+          unselectedItemColor: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.6),
           selectedFontSize: 12,
           unselectedFontSize: 12,
           items: const [

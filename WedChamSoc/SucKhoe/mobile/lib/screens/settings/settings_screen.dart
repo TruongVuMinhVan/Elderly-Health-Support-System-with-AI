@@ -449,8 +449,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       return Scaffold(
         appBar: AppBar(
           title: const Text('Cài đặt'),
-          backgroundColor: Colors.blue,
-          foregroundColor: Colors.white,
         ),
         body: const Center(child: CircularProgressIndicator()),
       );
@@ -459,8 +457,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Cài đặt hệ thống'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
       ),
       body: RefreshIndicator(
         onRefresh: _loadAll,

@@ -96,14 +96,15 @@ ThemeData buildAppTheme({
     ),
     textTheme: textTheme,
     appBarTheme: AppBarTheme(
-      backgroundColor: surfaceColor,
+      backgroundColor: isDark ? const Color(0xFF2D2D2D) : AppColors.primary,
       elevation: 0,
-      foregroundColor: textColor,
+      foregroundColor: Colors.white, // Always white for better contrast on primary color
       titleTextStyle: GoogleFonts.inter(
         fontSize: baseAppBar,
         fontWeight: FontWeight.w600,
-        color: textColor,
+        color: Colors.white, // Always white for better contrast
       ),
+      iconTheme: const IconThemeData(color: Colors.white),
     ),
     cardTheme: CardThemeData(
       color: surfaceColor,

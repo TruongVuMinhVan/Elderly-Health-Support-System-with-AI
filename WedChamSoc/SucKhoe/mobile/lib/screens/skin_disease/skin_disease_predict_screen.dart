@@ -117,8 +117,13 @@ class _SkinDiseasePredictScreenState extends State<SkinDiseasePredictScreen> {
       backgroundColor: AppColors.elderlyBg,
       appBar: AppBar(
         title: const Text('Dự đoán bệnh ngoài da'),
-        backgroundColor: Colors.white,
-        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            // Navigate to dashboard
+            Navigator.pushReplacementNamed(context, '/dashboard');
+          },
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),

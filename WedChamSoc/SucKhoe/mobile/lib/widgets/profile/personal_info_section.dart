@@ -85,7 +85,9 @@ class PersonalInfoSection extends StatelessWidget {
                   prefixIcon: Icon(Icons.email),
                 ),
                 enabled: false,
-                style: TextStyle(color: Colors.grey[600]),
+                style: TextStyle(
+                  color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.6),
+                ),
               ),
               const SizedBox(height: 12),
               TextFormField(

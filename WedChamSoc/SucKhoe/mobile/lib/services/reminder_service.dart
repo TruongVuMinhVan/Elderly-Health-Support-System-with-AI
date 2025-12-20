@@ -9,6 +9,11 @@ import '../models/medication.dart';
 import 'notification_service.dart';
 import '../api/api_client.dart' show TokenExpiredException;
 
+// Helper để chạy async function mà không cần await
+void unawaited(Future<void> future) {
+  // Ignore errors - they will be handled in the future
+}
+
 /// Service để sync reminders từ API và schedule local notifications
 class ReminderService {
   static final ReminderService _instance = ReminderService._internal();
@@ -18,20 +23,35 @@ class ReminderService {
   final NotificationService _notificationService = NotificationService();
   Timer? _syncTimer;
   bool _isSyncing = false;
+  
+  // Cache API clients để tránh tạo mới mỗi lần
+  ApiClient? _cachedApiClient;
+  SchedulesService? _cachedSchedulesService;
+  MedicationsService? _cachedMedicationsService;
+  UserService? _cachedUserService;
 
   /// Khởi tạo reminder service
   Future<void> initialize() async {
     await _notificationService.initialize();
-    await syncReminders();
+    // Chạy sync ban đầu trong background (không block UI)
+    syncReminders();
     
-    // Sync reminders mỗi 15 phút
-    _syncTimer = Timer.periodic(const Duration(minutes: 15), (_) {
+    // Sync reminders mỗi 30 phút (tăng từ 15 lên 30 để giảm tải)
+    _syncTimer = Timer.periodic(const Duration(minutes: 30), (_) {
       syncReminders();
     });
   }
 
   /// Sync reminders từ API và schedule local notifications
+  /// Chạy async trong background để không block main thread
   Future<void> syncReminders() async {
+    if (_isSyncing) return;
+    
+    // Chạy trong background để không block UI
+    unawaited(_syncRemindersInternal());
+  }
+  
+  Future<void> _syncRemindersInternal() async {
     if (_isSyncing) return;
     
     final prefs = await SharedPreferences.getInstance();
@@ -47,12 +67,17 @@ class ReminderService {
       // Check if user is logged in
       final token = prefs.getString('auth_token');
       if (token == null || token.isEmpty) {
+        _isSyncing = false;
         return;
       }
 
-      final apiClient = ApiClient();
-      final schedulesService = SchedulesService(apiClient);
-      final medicationsService = MedicationsService(apiClient);
+      // Sử dụng cached API clients
+      _cachedApiClient ??= ApiClient();
+      _cachedSchedulesService ??= SchedulesService(_cachedApiClient!);
+      _cachedMedicationsService ??= MedicationsService(_cachedApiClient!);
+      
+      final schedulesService = _cachedSchedulesService!;
+      final medicationsService = _cachedMedicationsService!;
 
       // Get upcoming schedules
       final schedules = await schedulesService.getSchedules(
@@ -70,11 +95,10 @@ class ReminderService {
       if (advanceMinutesStr != null) {
         advanceMinutes = int.tryParse(advanceMinutesStr) ?? 30;
       } else {
-        // Nếu không có trong SharedPreferences, thử load từ backend
+        // Nếu không có trong SharedPreferences, thử load từ backend (chỉ một lần)
         try {
-          final apiClient = ApiClient();
-          final userService = UserService(apiClient);
-          final settings = await userService.getSettings();
+          _cachedUserService ??= UserService(_cachedApiClient!);
+          final settings = await _cachedUserService!.getSettings();
           
           for (final setting in settings) {
             if (setting is Map<String, dynamic>) {
@@ -98,7 +122,7 @@ class ReminderService {
       await _notificationService.cancelAllMedicationReminders();
 
       // Schedule notifications cho schedules
-      print('🔄 Syncing reminders with advanceMinutes: $advanceMinutes');
+      // Loại bỏ print statements để giảm I/O overhead
       int scheduledCount = 0;
       
       for (final schedule in schedules) {
@@ -117,19 +141,11 @@ class ReminderService {
               advanceMinutes: advanceMinutes,
             );
             scheduledCount++;
-          } else {
-            print('⏭️ Skipping schedule ${schedule.id}: isCompleted=${schedule.isCompleted}, scheduledTime=$scheduledTime (isAfterNow=${scheduledTime.isAfter(DateTime.now())})');
           }
         } catch (e) {
-          // This catch should rarely be hit since scheduleAppointmentReminder handles errors internally
-          print('❌ Error scheduling reminder for schedule ${schedule.id}: $e');
-          // Continue with next schedule
+          // Continue with next schedule - errors are handled internally
         }
       }
-      
-      print('✅ Scheduled $scheduledCount reminders');
-      
-      print('✅ Scheduled $scheduledCount reminders');
 
       // Schedule notifications cho medications
       for (final medication in medications) {
@@ -205,7 +221,7 @@ class ReminderService {
       return;
     } catch (e) {
       // Error syncing, sẽ retry ở lần sau
-      // Có thể log error ở đây nếu cần
+      // Silently handle errors để không block UI
     } finally {
       _isSyncing = false;
     }

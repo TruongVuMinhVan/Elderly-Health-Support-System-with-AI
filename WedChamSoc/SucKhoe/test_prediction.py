@@ -2,13 +2,19 @@
 Test script để kiểm tra prediction với ảnh trong uploads/skin_disease
 """
 import sys
+import io
 from pathlib import Path
+
+# Fix encoding for Windows console
+if sys.platform == 'win32':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 # Add backend to path
 backend_path = Path(__file__).parent / "backend"
 sys.path.insert(0, str(backend_path))
 
-from ml.predictor import get_predictor
+from ml.predictor import get_ensemble_predictor
 import logging
 
 # Setup logging
@@ -43,16 +49,16 @@ def test_prediction():
     print(f"📂 Thư mục: {uploads_dir}")
     print("=" * 80)
     
-    # Load predictor
+    # Load ensemble predictor
     try:
-        print("\n📦 Đang load model...")
-        predictor = get_predictor(model_name="resnet50", config_name="from_dataset")
-        print(f"✅ Model loaded thành công!")
-        print(f"   Model: {predictor.model_name}")
+        print("\n📦 Đang load ensemble models (ResNet50 + ViT)...")
+        predictor = get_ensemble_predictor(config_name="from_dataset")
+        print(f"✅ Ensemble models loaded thành công!")
+        print(f"   Models: ResNet50 + ViT (Ensemble)")
         print(f"   Classes: {predictor.num_classes}")
-        print(f"   Device: {predictor.model.device if hasattr(predictor.model, 'device') else 'N/A'}")
+        print(f"   Weights: ResNet50={predictor.resnet_weight:.1%}, ViT={predictor.vit_weight:.1%}")
     except Exception as e:
-        print(f"❌ Lỗi khi load model: {e}")
+        print(f"❌ Lỗi khi load ensemble models: {e}")
         import traceback
         traceback.print_exc()
         return
@@ -76,11 +82,19 @@ def test_prediction():
             
             # Hiển thị kết quả
             print(f"\n   ✅ Prediction thành công!")
-            print(f"   🎯 Predicted: {result['predicted_disease']}")
-            print(f"   📊 Confidence: {result['confidence']:.2%}")
+            print(f"   🎯 Ensemble Predicted: {result['predicted_disease']}")
+            print(f"   📊 Ensemble Confidence: {result['confidence']:.2%}")
             print(f"   ✓ Meets threshold: {result['meets_threshold']}")
             
-            print(f"\n   📋 Top {len(result['top_predictions'])} predictions:")
+            # Hiển thị thông tin từ từng model
+            if 'ensemble_info' in result:
+                ensemble_info = result['ensemble_info']
+                print(f"\n   🔍 Individual Model Predictions:")
+                print(f"      ResNet50: {ensemble_info['resnet_prediction']} ({ensemble_info['resnet_confidence']:.2%})")
+                print(f"      ViT:      {ensemble_info['vit_prediction']} ({ensemble_info['vit_confidence']:.2%})")
+                print(f"      Models Agree: {'✅ Yes' if ensemble_info['models_agree'] else '❌ No'}")
+            
+            print(f"\n   📋 Top {len(result['top_predictions'])} Ensemble Predictions:")
             for j, pred in enumerate(result['top_predictions'], 1):
                 print(f"      {j}. {pred['disease']}: {pred['confidence']:.2%}")
             

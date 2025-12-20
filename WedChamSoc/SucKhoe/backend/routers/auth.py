@@ -30,13 +30,33 @@ class UserRegister(BaseModel):
     email: EmailStr
     password: str
     full_name: str
-    phone: str = None
+    phone: Optional[str] = None
     
     @validator('password')
     def validate_password_strength(cls, v):
         if not validate_password(v):
             raise ValueError('Password must be at least 6 characters long')
         return v
+    
+    @validator('full_name')
+    def validate_full_name(cls, v):
+        if not v or not v.strip():
+            raise ValueError('Full name is required')
+        if len(v.strip()) < 2:
+            raise ValueError('Full name must be at least 2 characters long')
+        return v.strip()
+    
+    @validator('phone')
+    def validate_phone(cls, v):
+        if v is not None and v.strip():
+            # Basic phone validation - remove spaces and check if it's numeric
+            phone_clean = v.strip().replace(' ', '').replace('-', '').replace('+', '')
+            if not phone_clean.isdigit():
+                raise ValueError('Phone number must contain only digits, spaces, hyphens, or plus sign')
+            if len(phone_clean) < 10 or len(phone_clean) > 15:
+                raise ValueError('Phone number must be between 10 and 15 digits')
+            return v.strip()
+        return None
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -78,25 +98,40 @@ class UserResponse(BaseModel):
 @router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)
 def register(user_data: UserRegister, db: Session = Depends(get_database)):
     """
-    Register a new user
+    Đăng ký người dùng mới
+    
+    Validation:
+    - Email không được trùng lặp
+    - Mật khẩu tối thiểu 6 ký tự
+    - Email phải đúng format
     """
     try:
-        existing_user = db.query(User).filter(User.email == user_data.email).first()
+        # Kiểm tra email đã tồn tại chưa
+        existing_user = db.query(User).filter(User.email == user_data.email.lower().strip()).first()
         if existing_user:
-            raise HTTPException(status_code=400, detail="Email already registered")
+            logger.warning(f"❌ Registration failed - email already exists: {user_data.email}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail="Email already registered"
+            )
         
+        # Validation đã được xử lý bởi Pydantic (email format, password length)
+        # Hash mật khẩu trước khi lưu
         password_hash = AuthManager.get_password_hash(user_data.password)
+        
+        # Tạo user mới
         new_user = User(
-            email=user_data.email,
+            email=user_data.email.lower().strip(),
             password_hash=password_hash,
-            full_name=user_data.full_name,
-            phone=user_data.phone,
+            full_name=user_data.full_name.strip(),
+            phone=user_data.phone.strip() if user_data.phone else None,
             email_verified=True
         )
         db.add(new_user)
         db.commit()
         db.refresh(new_user)
 
+        # Tạo access token
         access_token = AuthManager.create_access_token(
             data={"sub": str(new_user.id), "email": new_user.email},
             expires_delta=timedelta(minutes=30)
@@ -109,8 +144,11 @@ def register(user_data: UserRegister, db: Session = Depends(get_database)):
         raise
     except Exception as e:
         db.rollback()
-        logger.error(f"❌ Error registering user: {e}")
-        raise HTTPException(status_code=500, detail="Failed to register user")
+        logger.error(f"❌ Error registering user: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail="Failed to register user"
+        )
 
 # -----------------------------
 # Login

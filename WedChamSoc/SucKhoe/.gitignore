@@ -69,15 +69,36 @@ backend/models/*.h5
 backend/models/*.hdf5
 backend/models/*.ckpt
 backend/models/*.safetensors
-# Specifically ignore resnet models
+
+# Specifically ignore model files by name
 backend/models/resnet*.pth
 backend/models/resnet*.pt
 backend/models/*resnet*.pth
 backend/models/*resnet*.pt
-# Ignore entire checkpoints directory
+backend/models/vit*.pth
+backend/models/vit*.pt
+backend/models/*vit*.pth
+backend/models/*vit*.pt
+backend/models/efficientnet*.pth
+backend/models/efficientnet*.pt
+backend/models/*efficientnet*.pth
+backend/models/*efficientnet*.pt
+backend/models/*_best.pth
+backend/models/*_best.pt
+backend/models/*_final.pth
+backend/models/*_final.pt
+backend/models/*_checkpoint.pth
+backend/models/*_checkpoint.pt
+backend/models/*checkpoint*.pth
+backend/models/*checkpoint*.pt
+
+# Ignore entire checkpoints directory (including all subdirectories)
 backend/models/checkpoints/
-# But keep label maps, history files, and other configs
+backend/models/checkpoints/**/*
+
+# But keep label maps, history files in models root, and other configs
 !backend/models/label_map*.json
 !backend/models/*history*.json
 !backend/models/*.py
 !backend/models/.gitkeep
+!backend/models/__init__.py

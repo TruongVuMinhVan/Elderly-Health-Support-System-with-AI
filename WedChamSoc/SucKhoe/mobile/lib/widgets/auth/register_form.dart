@@ -53,7 +53,17 @@ class RegisterForm extends StatelessWidget {
                   hintText: 'Nhập địa chỉ email',
                 ),
                 keyboardType: TextInputType.emailAddress,
-                validator: (v) => (v == null || v.isEmpty) ? 'Vui lòng nhập email' : null,
+                validator: (v) {
+                  if (v == null || v.isEmpty) {
+                    return 'Vui lòng nhập email';
+                  }
+                  // Kiểm tra format email
+                  final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                  if (!emailRegex.hasMatch(v.trim())) {
+                    return 'Email không hợp lệ';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -71,7 +81,15 @@ class RegisterForm extends StatelessWidget {
                   hintText: 'Ít nhất 6 ký tự',
                 ),
                 obscureText: true,
-                validator: (v) => (v == null || v.length < 6) ? 'Mật khẩu tối thiểu 6 ký tự' : null,
+                validator: (v) {
+                  if (v == null || v.isEmpty) {
+                    return 'Vui lòng nhập mật khẩu';
+                  }
+                  if (v.length < 6) {
+                    return 'Mật khẩu tối thiểu 6 ký tự';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -80,7 +98,15 @@ class RegisterForm extends StatelessWidget {
                   labelText: 'Xác nhận mật khẩu',
                 ),
                 obscureText: true,
-                validator: (v) => (v != passwordCtrl.text) ? 'Mật khẩu không trùng khớp' : null,
+                validator: (v) {
+                  if (v == null || v.isEmpty) {
+                    return 'Vui lòng xác nhận mật khẩu';
+                  }
+                  if (v != passwordCtrl.text) {
+                    return 'Mật khẩu không trùng khớp';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
               ElevatedButton.icon(

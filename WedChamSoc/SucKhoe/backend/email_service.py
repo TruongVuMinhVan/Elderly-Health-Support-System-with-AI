@@ -78,25 +78,36 @@ class EmailOTPService:
 
     def verify_otp(self, email: str, provided_otp: str) -> bool:
         """Verify OTP with expiration and attempt limit"""
+        logger.info(f"🔍 Verifying OTP for email: {email}")
+        logger.info(f"📦 Current OTP storage keys: {list(self.otp_storage.keys())}")
+        
         record = self.otp_storage.get(email)
         if not record:
+            logger.warning(f"❌ No OTP record found for email: {email}")
             return False
 
+        logger.info(f"📝 OTP record found - Expires at: {record['expires_at']}, Attempts: {record['attempts']}")
+        
         # Expired
         if datetime.utcnow() > record["expires_at"]:
+            logger.warning(f"⏰ OTP expired for {email}")
             del self.otp_storage[email]
             return False
 
         # Too many attempts
         if record["attempts"] >= 3:
+            logger.warning(f"🚫 Too many attempts for {email}")
             del self.otp_storage[email]
             return False
 
         # Match check
+        logger.info(f"🔑 Comparing OTP - Stored: {record['otp']}, Provided: {provided_otp}")
         if record["otp"] == provided_otp:
+            logger.info(f"✅ OTP verified successfully for {email}")
             del self.otp_storage[email]
             return True
 
+        logger.warning(f"❌ OTP mismatch for {email}")
         record["attempts"] += 1
         return False
 

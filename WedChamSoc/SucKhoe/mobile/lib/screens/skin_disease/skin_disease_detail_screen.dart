@@ -65,8 +65,6 @@ class _SkinDiseaseDetailScreenState extends State<SkinDiseaseDetailScreen> {
       backgroundColor: AppColors.elderlyBg,
       appBar: AppBar(
         title: const Text('Chi tiết bệnh'),
-        backgroundColor: Colors.white,
-        elevation: 0,
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())

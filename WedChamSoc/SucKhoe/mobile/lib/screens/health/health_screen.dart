@@ -198,8 +198,6 @@ class _HealthScreenState extends State<HealthScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Theo dõi sức khỏe'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {

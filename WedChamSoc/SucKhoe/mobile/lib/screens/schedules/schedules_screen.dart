@@ -62,17 +62,9 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
       return;
     }
     
-    // Auto-refresh when returning to this screen (e.g., from another screen)
-    // Only refresh if enough time has passed since last load to avoid excessive reloading
-    final now = DateTime.now();
-    if (_lastLoadTime == null || 
-        now.difference(_lastLoadTime!) > _minRefreshInterval) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _loadData();
-        }
-      });
-    }
+    // Tắt auto-refresh trong didChangeDependencies để tránh reload không cần thiết
+    // Chỉ refresh khi user pull to refresh hoặc sau khi thêm/xóa schedule
+    // Auto-refresh gây ra quá nhiều rebuilds và API calls
   }
 
   Future<void> _loadData() async {
@@ -243,8 +235,6 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
       return Scaffold(
         appBar: AppBar(
           title: const Text('Lịch hẹn & Nhắc nhở'),
-          backgroundColor: Colors.blue,
-          foregroundColor: Colors.white,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () {
@@ -260,8 +250,6 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Lịch hẹn & Nhắc nhở'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {

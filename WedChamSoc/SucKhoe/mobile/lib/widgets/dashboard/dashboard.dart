@@ -70,17 +70,9 @@ class _DashboardState extends State<Dashboard> {
       return;
     }
     
-    // Auto-refresh when returning to this screen (e.g., from another screen)
-    // Only refresh if enough time has passed since last load to avoid excessive reloading
-    final now = DateTime.now();
-    if (_lastLoadTime == null || 
-        now.difference(_lastLoadTime!) > _minRefreshInterval) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _loadDashboardData();
-        }
-      });
-    }
+    // Tắt auto-refresh trong didChangeDependencies để tránh reload không cần thiết
+    // Chỉ refresh khi user pull to refresh hoặc sau khi thêm/xóa data
+    // Auto-refresh gây ra quá nhiều rebuilds và API calls
   }
 
   Future<void> _loadUser() async {
@@ -354,10 +346,17 @@ class _DashboardState extends State<Dashboard> {
                       child: LayoutBuilder(
                         builder: (context, constraints) {
                           final screenWidth = constraints.maxWidth;
-                          final spacing = 12.0;
+                          final spacing = 12.0; // Khoảng cách giữa các card xung quanh
+                          final centerCardGap = 20.0; // Khoảng cách giữa card dự đoán và các card xung quanh
                           final cardSize = (screenWidth - spacing) / 2;
                           final centerCardSize = cardSize * 0.6; // Center card nhỏ hơn một chút
                           final colorScheme = Theme.of(context).colorScheme;
+                          
+                          // Tính toán vị trí center card với khoảng cách
+                          // Container bao bọc có kích thước lớn hơn để tạo khoảng cách
+                          final containerSize = centerCardSize + centerCardGap * 2;
+                          final centerLeft = (screenWidth - containerSize) / 2;
+                          final centerTop = (cardSize * 2 + spacing - containerSize) / 2;
                           
                           return Stack(
                             children: [
@@ -408,13 +407,14 @@ class _DashboardState extends State<Dashboard> {
                                   ),
                                 ],
                               ),
-                              // Center card - Chụp ảnh dự đoán
+                              // Center card - Chụp ảnh dự đoán (có khoảng cách với các card xung quanh)
                               Positioned(
-                                left: (screenWidth - centerCardSize) / 2,
-                                top: (cardSize * 2 + spacing - centerCardSize) / 2,
-                                child: SizedBox(
-                                  width: centerCardSize,
-                                  height: centerCardSize,
+                                left: centerLeft,
+                                top: centerTop,
+                                child: Container(
+                                  width: containerSize,
+                                  height: containerSize,
+                                  padding: EdgeInsets.all(centerCardGap),
                                   child: _SquareCard(
                                     title: 'Dự đoán',
                                     icon: Icons.camera_alt,

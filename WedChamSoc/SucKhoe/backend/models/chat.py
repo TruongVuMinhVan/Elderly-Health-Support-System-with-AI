@@ -126,15 +126,161 @@ class HealthChatTemplates:
     }
     
     MEDICATION_REMINDERS = [
-        "Đừng quên uống thuốc đúng giờ nhé! Việc tuân thủ đúng liều lượng và thời gian rất quan trọng cho sức khỏe.",
-        "Hãy nhớ uống thuốc theo đúng chỉ định của bác sĩ. Nếu quên một liều, hãy uống ngay khi nhớ ra (trừ khi gần giờ uống liều tiếp theo).",
-        "Việc uống thuốc đều đặn sẽ giúp kiểm soát bệnh tốt hơn. Bạn có thể đặt báo thức để nhắc nhở."
+        """
+        💊 **Hướng dẫn uống thuốc an toàn:**
+        
+        **⏰ Thời gian:**
+        • Uống đúng giờ theo chỉ định bác sĩ
+        • Đặt báo thức nhắc nhở
+        • Nếu quên 1 liều: uống ngay khi nhớ (trừ khi gần giờ uống liều tiếp theo)
+        
+        **📋 Lưu ý quan trọng:**
+        • Không tự ý tăng/giảm liều
+        • Không ngừng thuốc đột ngột
+        • Uống với nước lọc, tránh rượu bia
+        • Bảo quản thuốc nơi khô ráo, thoáng mát
+        
+        **🔍 Theo dõi:**
+        • Ghi nhật ký uống thuốc
+        • Theo dõi tác dụng phụ
+        • Mang danh sách thuốc khi đi khám
+        
+        **⚠️ Báo bác sĩ ngay nếu:**
+        • Có phản ứng dị ứng (ngứa, phát ban, khó thở)
+        • Tác dụng phụ nghiêm trọng
+        • Thuốc không có hiệu quả
+        
+        Tuân thủ uống thuốc = Kiểm soát bệnh tốt hơn! 💙
+        """,
+        
+        """
+        💊 **Quản lý thuốc thông minh:**
+        
+        **📦 Sắp xếp thuốc:**
+        • Dùng hộp chia thuốc theo ngày/giờ
+        • Để thuốc ở nơi dễ thấy (không phải tủ lạnh)
+        • Kiểm tra hạn sử dụng định kỳ
+        
+        **📱 Công nghệ hỗ trợ:**
+        • App nhắc uống thuốc
+        • Báo thức điện thoại
+        • Lịch ghi chú trên tường
+        
+        **👨‍⚕️ Tương tác thuốc:**
+        • Thông báo bác sĩ tất cả thuốc đang dùng
+        • Bao gồm thuốc không kê đơn, thảo dược
+        • Hỏi dược sĩ về tương tác thuốc
+        
+        **🍽️ Uống thuốc với thức ăn:**
+        • Trước ăn: 30-60 phút trước bữa ăn
+        • Sau ăn: 1-2 giờ sau bữa ăn
+        • Cùng bữa ăn: trong lúc ăn hoặc ngay sau ăn
+        
+        Thuốc là bạn đồng hành chăm sóc sức khỏe! 💙
+        """,
+        
+        """
+        💊 **An toàn thuốc cho người cao tuổi:**
+        
+        **🎯 Nguyên tắc vàng:**
+        • "Đúng người, đúng thuốc, đúng liều, đúng cách, đúng thời gian"
+        • Luôn đọc nhãn thuốc trước khi uống
+        • Không chia sẻ thuốc với người khác
+        
+        **📝 Danh sách thuốc:**
+        • Ghi tên thuốc, liều lượng, tần suất
+        • Cập nhật khi có thay đổi
+        • Mang theo khi đi du lịch, cấp cứu
+        
+        **🔄 Tái khám định kỳ:**
+        • Đánh giá hiệu quả điều trị
+        • Điều chỉnh liều nếu cần
+        • Kiểm tra tác dụng phụ
+        • Cân nhắc ngừng thuốc không cần thiết
+        
+        **💡 Mẹo nhỏ:**
+        • Uống thuốc cùng thói quen hàng ngày (đánh răng, ăn sáng)
+        • Chuẩn bị thuốc cho cả tuần vào Chủ nhật
+        • Nhờ người thân nhắc nhở nếu cần
+        
+        Sức khỏe là tài sản quý giá nhất! 💙
+        """
     ]
     
     GENERAL_HEALTH_TIPS = [
-        "Một số lời khuyên sức khỏe cho người cao tuổi: 1) Uống đủ nước (6-8 ly/ngày), 2) Ăn nhiều rau xanh và trái cây, 3) Tập thể dục nhẹ nhàng hàng ngày, 4) Ngủ đủ 7-8 tiếng, 5) Khám sức khỏe định kỳ.",
-        "Để duy trì sức khỏe tốt: 1) Duy trì cân nặng hợp lý, 2) Không hút thuốc, hạn chế rượu bia, 3) Quản lý stress, 4) Duy trì mối quan hệ xã hội tích cực, 5) Kích thích trí não bằng đọc sách, giải đố.",
-        "Chăm sóc sức khỏe tại nhà: 1) Theo dõi các chỉ số sức khỏe (huyết áp, đường huyết), 2) Giữ gìn vệ sinh cá nhân, 3) Tạo môi trường sống an toàn, 4) Chuẩn bị thuốc cấp cứu cơ bản."
+        """
+        🌟 **Lời khuyên sức khỏe tổng quát cho người cao tuổi:**
+        
+        💧 **Nước uống:** 
+        • Uống 6-8 ly nước/ngày (khoảng 1.5-2 lít)
+        • Uống từ từ, chia đều trong ngày
+        • Tránh uống quá nhiều nước trước khi ngủ
+        
+        🥗 **Dinh dưỡng:**
+        • Ăn nhiều rau xanh, trái cây tươi (5 phần/ngày)
+        • Protein: cá, thịt nạc, trứng, đậu
+        • Canxi: sữa, phô mai, rau xanh đậm màu
+        • Hạn chế muối (<5g/ngày), đường, dầu mỡ
+        
+        🏃‍♂️ **Vận động:**
+        • Đi bộ 30 phút/ngày (có thể chia 3 lần 10 phút)
+        • Tập thể dục nhẹ: yoga, thái cực quyền
+        • Tập cơ: nâng tạ nhẹ 2-3 lần/tuần
+        
+        😴 **Giấc ngủ:** 7-8 tiếng/đêm, ngủ đúng giờ
+        
+        🏥 **Khám định kỳ:** 3-6 tháng/lần tùy tình trạng sức khỏe
+        """,
+        
+        """
+        🎯 **Duy trì sức khỏe toàn diện:**
+        
+        ⚖️ **Cân nặng:**
+        • BMI lý tưởng: 18.5-24.9
+        • Cân nặng mỗi tuần cùng giờ
+        • Giảm cân từ từ (0.5-1kg/tháng)
+        
+        🚭 **Tránh có hại:**
+        • Không hút thuốc (bỏ thuốc bất cứ lúc nào cũng có lợi)
+        • Hạn chế rượu bia (<1 ly/ngày nữ, <2 ly/ngày nam)
+        • Tránh thuốc không rõ nguồn gốc
+        
+        🧠 **Sức khỏe tinh thần:**
+        • Quản lý stress: thiền, nghe nhạc, làm vườn
+        • Duy trì mối quan hệ xã hội
+        • Học hỏi điều mới: đọc sách, học ngoại ngữ
+        • Tham gia hoạt động cộng đồng
+        
+        💡 **Mẹo nhỏ:** Viết nhật ký sức khỏe để theo dõi tiến bộ!
+        """,
+        
+        """
+        🏠 **Chăm sóc sức khỏe tại nhà:**
+        
+        📊 **Theo dõi chỉ số:**
+        • Huyết áp: đo cùng giờ mỗi ngày
+        • Đường huyết: theo chỉ định bác sĩ
+        • Cân nặng: 1 lần/tuần
+        • Ghi chép vào sổ theo dõi
+        
+        🧼 **Vệ sinh cá nhân:**
+        • Rửa tay thường xuyên (20 giây với xà phòng)
+        • Vệ sinh răng miệng 2 lần/ngày
+        • Tắm gội đều đặn
+        • Cắt móng tay chân sạch sẽ
+        
+        🏡 **An toàn tại nhà:**
+        • Đèn chiếu sáng đủ, tránh trơn trượt
+        • Tay vịn cầu thang, nhà tắm
+        • Sắp xếp đồ dùng tầm với
+        • Số điện thoại khẩn cấp dễ thấy
+        
+        💊 **Thuốc cấp cứu cơ bản:**
+        • Thuốc hạ sốt, giảm đau
+        • Băng gạc, cồn sát trùng
+        • Thuốc dị ứng (nếu có tiền sử)
+        • Kiểm tra hạn sử dụng định kỳ
+        """
     ]
     
     EMERGENCY_KEYWORDS = [

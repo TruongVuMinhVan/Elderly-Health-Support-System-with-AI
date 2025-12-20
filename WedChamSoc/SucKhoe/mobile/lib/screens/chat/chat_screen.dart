@@ -36,10 +36,25 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
-    _messageController.removeListener(_onTextChanged);
-    _messageController.dispose();
-    _scrollController.dispose();
-    _focusNode.dispose();
+    try {
+      _messageController.removeListener(_onTextChanged);
+      _messageController.dispose();
+    } catch (e) {
+      debugPrint('Error disposing message controller: $e');
+    }
+    
+    try {
+      _scrollController.dispose();
+    } catch (e) {
+      debugPrint('Error disposing scroll controller: $e');
+    }
+    
+    try {
+      _focusNode.dispose();
+    } catch (e) {
+      debugPrint('Error disposing focus node: $e');
+    }
+    
     super.dispose();
   }
 
@@ -218,12 +233,20 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
+      if (mounted && _scrollController.hasClients) {
+        try {
+          final position = _scrollController.position;
+          if (position.maxScrollExtent > 0) {
+            _scrollController.animateTo(
+              position.maxScrollExtent,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+            );
+          }
+        } catch (e) {
+          // Ignore scroll errors - they're usually harmless
+          debugPrint('Scroll error (ignored): $e');
+        }
       }
     });
   }
@@ -247,13 +270,10 @@ class _ChatScreenState extends State<ChatScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Tư vấn AI sức khỏe'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            // Navigate to dashboard
             Navigator.pushReplacementNamed(context, '/dashboard');
           },
         ),
@@ -408,9 +428,17 @@ class _ChatScreenState extends State<ChatScreen> {
     final timestamp = DateTime.parse(message.timestamp);
 
     if (isUser) {
-      return UserMessageWidget(
-        content: message.content,
-        timestamp: message.timestamp,
+      return Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            UserMessageWidget(
+              content: message.content,
+              timestamp: message.timestamp,
+            ),
+          ],
+        ),
       );
     } else {
       return Container(

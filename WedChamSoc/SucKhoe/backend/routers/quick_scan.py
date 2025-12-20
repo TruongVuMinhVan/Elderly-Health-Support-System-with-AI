@@ -12,7 +12,7 @@ import os
 from pathlib import Path
 
 from database import get_database
-from ml.predictor import get_predictor
+from ml.predictor import get_predictor, get_ensemble_predictor
 from models.skin_disease import SkinDisease
 from routers.skin_disease import match_disease_name
 from auth_simple import get_current_user
@@ -103,9 +103,9 @@ async def quick_scan(
             temp_file.write(content)
             temp_file.close()
             
-            # Load predictor
+            # Load ensemble predictor (kết hợp ResNet50 + ViT)
             try:
-                predictor = get_predictor(model_name="resnet50", config_name="from_dataset")
+                predictor = get_ensemble_predictor(config_name="from_dataset")
             except FileNotFoundError as e:
                 logger.error(f"Model not found: {e}")
                 raise HTTPException(

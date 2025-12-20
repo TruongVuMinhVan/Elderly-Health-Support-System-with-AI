@@ -47,13 +47,40 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đăng ký thành công')),
+        const SnackBar(
+          content: Text('Đăng ký thành công'),
+          backgroundColor: Colors.green,
+        ),
       );
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
+      String errorMessage = 'Đăng ký thất bại';
+      
+      // Xử lý lỗi cụ thể từ backend
+      final errorStr = e.toString().toLowerCase();
+      if (errorStr.contains('email already registered') || 
+          errorStr.contains('email đã được đăng ký') ||
+          errorStr.contains('already exists')) {
+        errorMessage = 'Email này đã được đăng ký. Vui lòng sử dụng email khác hoặc đăng nhập.';
+      } else if (errorStr.contains('password') && errorStr.contains('6')) {
+        errorMessage = 'Mật khẩu phải có ít nhất 6 ký tự';
+      } else if (errorStr.contains('invalid email') || errorStr.contains('email không hợp lệ')) {
+        errorMessage = 'Email không hợp lệ. Vui lòng kiểm tra lại.';
+      } else if (errorStr.contains('detail')) {
+        // Lấy message từ detail nếu có
+        final match = RegExp(r'detail[:\s]+(.+?)(?:\.|$)').firstMatch(errorStr);
+        if (match != null) {
+          errorMessage = match.group(1) ?? errorMessage;
+        }
+      }
+      
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Đăng ký thất bại: $e')),
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+        ),
       );
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -64,8 +91,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {

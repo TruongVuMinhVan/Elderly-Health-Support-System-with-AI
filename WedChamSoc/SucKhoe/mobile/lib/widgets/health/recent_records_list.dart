@@ -85,9 +85,11 @@ class RecentRecordsList extends StatelessWidget {
                 child: Center(
                   child: Column(
                     children: [
-                      const Text(
+                      Text(
                         'Chưa có ghi nhận nào',
-                        style: TextStyle(color: Colors.black54),
+                        style: TextStyle(
+                          color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
+                        ),
                       ),
                       const SizedBox(height: 12),
                       ElevatedButton(
@@ -99,14 +101,14 @@ class RecentRecordsList extends StatelessWidget {
                 ),
               )
             else
-              ...paginatedRecords.map((record) => _buildRecordItem(record)),
+              ...paginatedRecords.map((record) => _buildRecordItem(context, record)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildRecordItem(HealthRecordModel record) {
+  Widget _buildRecordItem(BuildContext context, HealthRecordModel record) {
     final typeConfig = HealthConstants.getTypeConfig(
       recordTypeToString(record.recordType),
     );
@@ -157,16 +159,16 @@ class RecentRecordsList extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 DateFormatter.formatDate(record.recordedAt),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
-                  color: Colors.black54,
+                  color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
                 ),
               ),
               Text(
                 DateFormatter.formatTime(record.recordedAt),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 10,
-                  color: Colors.black54,
+                  color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.7),
                 ),
               ),
               const SizedBox(height: 4),
