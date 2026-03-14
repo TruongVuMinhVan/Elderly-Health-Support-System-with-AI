@@ -24,7 +24,7 @@ pillow>=10.2.0
 pyotp==2.9.0
 qrcode[pil]==7.4.2
 pandas>=2.1.4
-numpy==1.25.2
+numpy>=1.26.0
 matplotlib==3.8.2
 seaborn==0.13.0
 plotly==5.17.0
